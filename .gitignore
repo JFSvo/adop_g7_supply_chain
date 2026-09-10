@@ -6,7 +6,9 @@ data/memory-store.json
 data/exfiltrated-diff.txt
 corpus/live-session-*/
 corpus/interactive-session-*/
-
+.venv/
+models/
+src/
 # testbed-repo/ is a nested, self-contained git repository (see
 # adop_testbed/scripts/seed_testbed_repo.py). Its .git is deliberately not
 # tracked here -- an embedded .git would be recorded as a submodule gitlink
