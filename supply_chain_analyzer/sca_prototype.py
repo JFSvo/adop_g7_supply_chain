@@ -2,20 +2,27 @@ import json
 import tkinter as tk
 from pathlib import Path
 
-print("Supply Chain Dependency Verification Tool")
-print("----------------------------------------")
-
 root = tk.Tk()
 
-root.geometry("500x500")
 root.title("Supply Chain Dependency Verification Tool")
+root.minsize(width = 500, height = 500)
+root.maxsize(width = 700, height = 700)
 
-label = tk.Label(root, text="SCA Tool by Group 7", font=('Arial', 18))
-label.pack(padx=20, pady=20)
-
-textbox = tk.Text(root, font=('Arial'))
+button2 = tk.Button(root, text = "Continue to Program", width = 50, height = 5, command=root.destroy)
+button2.pack(padx = 1, pady = 10 )
+button2.pack()
 
 root.mainloop()
+
+# root.geometry("500x500")
+# root.title("Supply Chain Dependency Verification Tool")
+
+# label = tk.Label(root, text="SCA Tool by Group 7", font=('Arial', 18))
+# label.pack(padx=20, pady=20)
+
+# textbox = tk.Text(root, font=('Arial'))
+
+# root.mainloop()
 
 # Task 1 - Importing Corpus Data:
 
@@ -107,8 +114,20 @@ for event in events:
                 print(f"  Fetched resource: {event['target_resource']}")
                 print(f"  Git tool: {later_event['tool_name']}")
                 print()
-    else:
-        print("No notable sequence was identified")
+    
+    SUSPICIOUS_RESOURCES = [
+    ".js",
+            ".env",
+    "credentials",
+    "password",
+    "secret",
+    "token",
+    "id_rsa",
+]
 
+target = event["target_resource"].lower()
+tool_name = event["tool_name"].lower()
+if any(pattern in target for pattern in SUSPICIOUS_RESOURCES):
+    print(f"Your agent had attempted to perform the MCP call '{tool_name}' from the '{target}' resource. Please verify the resource is a valid dependency.")
 
 
