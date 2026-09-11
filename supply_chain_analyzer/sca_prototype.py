@@ -4,9 +4,17 @@ from pathlib import Path
 
 root = tk.Tk()
 
+# root.title("Supply Chain Dependency Verification Tool")
+# root.minsize(width = 500, height = 500)
+# root.maxsize(width = 700, height = 700)
+
+root.geometry("500x500")
 root.title("Supply Chain Dependency Verification Tool")
-root.minsize(width = 500, height = 500)
-root.maxsize(width = 700, height = 700)
+
+label = tk.Label(root, text="Agentic Monitoring Tool, by SC Inc", font=('Arial', 18))
+label.pack(padx=20, pady=20)
+
+textbox = tk.Text(root, font=('Arial'))
 
 button2 = tk.Button(root, text = "Continue to Program", width = 50, height = 5, command=root.destroy)
 button2.pack(padx = 1, pady = 10 )
@@ -22,11 +30,9 @@ root.mainloop()
 
 # textbox = tk.Text(root, font=('Arial'))
 
-# root.mainloop()
-
 # Task 1 - Importing Corpus Data:
 
-project = Path("/home/adamo/adop_g7_supply_chain")
+project = Path(r"adop_g7_supply_chain")
 corpus = project / "corpus"
 
 print("Please view the following agentic actions sequence sessions")
@@ -93,41 +99,58 @@ print()
 print("Potential Suspicious Relationship Sequences")
 print("------------------------------------")
 
-for event in events:
+# Deterministic Rules:
 
-    if event["event_type"] == "FETCH":
+# Rule 1 - Assess MCP Server Pull Order
+def assess_mcp_server_pull_order(events):
 
-        for later_event in events:
+    for event in events:
 
-            if (                                                # Rule 1 - Was the dependancy fetched?
-                later_event["event_type"] == "GIT"
-                and later_event["task_id"] == event["task_id"]
-                and later_event["seq"] > event["seq"]
-            ):                                                    
+        if event["event_type"] == "FETCH":
 
-                print(
-                    f"Task: {event['task_id']} | "
-                    f"FETCH seq {event['seq']} --> "
-                    f"GIT seq {later_event['seq']}"
-                )
+            for later_event in events:
 
-                print(f"  Fetched resource: {event['target_resource']}")
-                print(f"  Git tool: {later_event['tool_name']}")
-                print()
-    
+                if (
+                    later_event["event_type"] == "GIT"
+                    and later_event["task_id"] == event["task_id"]
+                    and later_event["seq"] > event["seq"]
+                ):
+
+                    print(
+                        f"Task: {event['task_id']} | "
+                        f"FETCH seq {event['seq']} --> "
+                        f"GIT seq {later_event['seq']}"
+                    )
+
+                    print(f"  Fetched resource: {event['target_resource']}")
+                    print(f"  Git tool: {later_event['tool_name']}")
+                    print()
+
+
+# Rule 2 - Check for Suspicious Files
+def check_suspicious_files(event):
+
     SUSPICIOUS_RESOURCES = [
-    ".js",
-            ".env",
-    "credentials",
-    "password",
-    "secret",
-    "token",
-    "id_rsa",
-]
+        ".js",
+        ".env",
+        "credentials",
+        "password",
+        "secret",
+        "token",
+        "id_rsa",
+    ]
 
-target = event["target_resource"].lower()
-tool_name = event["tool_name"].lower()
-if any(pattern in target for pattern in SUSPICIOUS_RESOURCES):
-    print(f"Your agent had attempted to perform the MCP call '{tool_name}' from the '{target}' resource. Please verify the resource is a valid dependency.")
+    target = event["target_resource"].lower()
+    tool_name = event["tool_name"].lower()
 
+    if any(pattern in target for pattern in SUSPICIOUS_RESOURCES):
+        print(
+            f"Your agent had attempted to perform the MCP call "
+            f"'{tool_name}' from the '{target}' resource. "
+            f"Please verify the resource is a valid dependency."
+        )
 
+assess_mcp_server_pull_order(events)
+
+for event in events:
+    check_suspicious_files(event)
