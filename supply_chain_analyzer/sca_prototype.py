@@ -1,38 +1,44 @@
 import json
 import tkinter as tk
+import sys
+from tkinter import scrolledtext
+from contextlib import redirect_stdout
+import io
 from pathlib import Path
 
 root = tk.Tk()
 
-# root.title("Supply Chain Dependency Verification Tool")
-# root.minsize(width = 500, height = 500)
-# root.maxsize(width = 700, height = 700)
-
 root.geometry("500x500")
 root.title("Supply Chain Dependency Verification Tool")
 
-label = tk.Label(root, text="Agentic Monitoring Tool, by SC Inc", font=('Arial', 18))
+label = tk.Label(root, text="SCA Tool by Group 7", font=('Arial', 18))
 label.pack(padx=20, pady=20)
 
 textbox = tk.Text(root, font=('Arial'))
 
-button2 = tk.Button(root, text = "Continue to Program", width = 50, height = 5, command=root.destroy)
+textbox = tk.Text(root, font=('Arial'))
+
+def continue_program():
+    root.quit()
+    root.destroy()
+    
+def close_program():
+    root.destroy()
+    sys.exit()
+
+button2 = tk.Button(root, text = "Continue to Program", width = 50, height = 5, command=continue_program)
 button2.pack(padx = 1, pady = 10 )
 button2.pack()
 
+button3 = tk.Button(root, text = "Close Program", width = 50, height = 5, command=close_program)
+button3.pack(padx = 1, pady = 10 )
+button3.pack()
+
 root.mainloop()
-
-# root.geometry("500x500")
-# root.title("Supply Chain Dependency Verification Tool")
-
-# label = tk.Label(root, text="SCA Tool by Group 7", font=('Arial', 18))
-# label.pack(padx=20, pady=20)
-
-# textbox = tk.Text(root, font=('Arial'))
 
 # Task 1 - Importing Corpus Data:
 
-project = Path(r"adop_g7_supply_chain")
+project = Path(r"C:\Users\Adam Omar.LAPTOP-7NMH8N5N\Desktop\Project Source Code\adop_g7_supply_chain")
 corpus = project / "corpus"
 
 print("Please view the following agentic actions sequence sessions")
@@ -40,16 +46,19 @@ print(' ')
 
 for item in corpus.iterdir(): # Lists All Corpus Items
     print(item)
-
-print(' ')
-
-# tk.messagebox.showinfo(title=None, message=None, **options)
+print('')
 
 session_choice = str(input("Select a Session You would Like to Analyze: "))
-file_choice = str(input("Would you like to view the clean or poisoned agentic actions? "))
+file_choice = str(input("Select 'p' for poisoned or 'c' for clean instruction set: "))
+print('')
 
-file_path = corpus / session_choice / f"{file_choice}.jsonl"
-
+if file_choice == 'p':
+    file_path = corpus / session_choice / 'poisoned.jsonl'
+elif file_choice == 'c':
+    file_path = corpus / session_choice / 'clean.jsonl'
+else:
+    print("You have not selected a valid file choice.")
+    
 events = [] # Store event information
 
 with open(file_path, "r") as file:
@@ -131,7 +140,7 @@ def assess_mcp_server_pull_order(events):
 def check_suspicious_files(event):
 
     SUSPICIOUS_RESOURCES = [
-        ".js",
+        ".js"
         ".env",
         "credentials",
         "password",
@@ -152,5 +161,135 @@ def check_suspicious_files(event):
 
 assess_mcp_server_pull_order(events)
 
+# Rule 3 - Check for Dependency Changes
+
+def check_dependency_change(event):
+    
+    dependencies = [
+        "package.json",
+        "requirements.txt"
+    ]
+
+    if event["event_type"] == "GIT":
+
+        target = str(event["target_resource"]).lower()
+
+        if any(file in target for file in dependencies):
+            print(
+                f"Potential dependency change detected: "
+                f"{event['target_resource']}"
+            )
+
 for event in events:
-    check_suspicious_files(event)
+            check_suspicious_files(event)
+            check_dependency_change(event)
+
+# # GUI - In Development 
+# def run_analysis():
+
+#     # Create a place to temporarily capture print() output
+#     output = io.StringIO()
+
+#     # Everything printed inside this block gets captured
+#     with redirect_stdout(output):
+
+#         print("Supply Chain Dependency Verification Results")
+#         print("--------------------------------------------")
+#         print()
+
+#         # Rule 1
+#         print("RULE 1 - MCP Server Pull Order")
+#         print("--------------------------------")
+#         assess_mcp_server_pull_order(events)
+
+#         # Rule 2
+#         print()
+#         print("RULE 2 - Suspicious Files")
+#         print("--------------------------")
+
+#         for event in events:
+#             check_suspicious_files(event)
+
+#         # Rule 3
+#         print()
+#         print("RULE 3 - Dependency Changes")
+#         print("----------------------------")
+
+#         for event in events:
+#             check_dependency_change(event)
+
+#     # Get everything that was printed
+#     results = output.getvalue()
+
+#     # Put the results into the textbox
+#     output_box.delete("1.0", tk.END)
+#     output_box.insert(tk.END, results)
+
+
+# def continue_program():
+
+#     output_box.delete("1.0", tk.END)
+
+#     output_box.insert(
+#         tk.END,
+#         "Ready for another analysis.\n"
+#     )
+
+
+# def close_program():
+
+#     root.destroy()
+
+
+# # Create main window
+# root = tk.Tk()
+
+# root.title("Supply Chain Dependency Verification Tool")
+
+# # Output screen
+# output_box = scrolledtext.ScrolledText(
+#     root,
+#     width=100,
+#     height=30,
+#     wrap=tk.WORD
+# )
+
+# output_box.pack(
+#     padx=10,
+#     pady=10
+# )
+
+
+# # Button area
+# button_frame = tk.Frame(root)
+
+# button_frame.pack(pady=10)
+
+
+# # Continue button
+# continue_button = tk.Button(
+#     button_frame,
+#     text="Continue",
+#     command=continue_program
+# )
+
+# continue_button.pack(
+#     side=tk.LEFT,
+#     padx=5
+# )
+
+
+# # Close button
+# close_button = tk.Button(
+#     button_frame,
+#     text="Close Program",
+#     command=close_program
+# )
+
+# close_button.pack(
+#     side=tk.LEFT,
+#     padx=5
+# )
+
+
+# root.mainloop()
