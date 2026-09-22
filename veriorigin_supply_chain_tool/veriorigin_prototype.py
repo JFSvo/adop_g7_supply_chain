@@ -38,7 +38,7 @@ root.mainloop()
 
 # Task 1 - Importing Corpus Data:
 
-project = Path(r"C:\Users\Adam Omar.LAPTOP-7NMH8N5N\Desktop\Project Source Code\adop_g7_supply_chain")
+project = Path(r"\Project Source Code\adop_g7_supply_chain")
 corpus = project / "corpus"
 
 print("Please view the following agentic actions sequence sessions")
@@ -140,7 +140,7 @@ def assess_mcp_server_pull_order(events):
 def check_suspicious_files(event):
 
     SUSPICIOUS_RESOURCES = [
-        ".js"
+        ".js",
         ".env",
         "credentials",
         "password",
