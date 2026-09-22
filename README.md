@@ -1,4 +1,4 @@
-## VeriOrigin — Supply Chain Dependency Provenance Tool
+# VeriOrigin — Supply Chain Dependency Provenance Tool
 
 VeriOrigin is a Student-Developed Agent Trust and Assurance Tool built on top of the instructor-provided ADOP testbed. It implements Canonical Example 4: Supply Chain Dependency Provenance. It consumes the ADOP's point in time tool call logs and flags agent actions that possibly introduce or touch an unvetted dependency, before that change reaches the build. 
 
@@ -42,7 +42,7 @@ python veriorigin_supply_chain_tool/veriorigin_prototype.py
 ```
 A small GUI window will open. Click Continue to Program to proceed to the analysis or Close Program to exit.
 
-You will be prompted to choose from a series of live session traces. The session data is collected from running the 'python -m adop_testbed.scripts.live_mode' command, which generates a clean and poisoned log traced. See [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse) for more details. 
+You will be prompted to choose from a series of live session traces. The session data is collected from running the 'python -m adop_testbed.scripts.live_mode' command, which generates clean and poisoned log traces. See [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse) for more details. 
 
 The tool will list all the available corpus sessions. You will need make a selection with the following prompts:
 
@@ -73,7 +73,7 @@ Task: task-04-summarize-mirrored-readme | FETCH seq 1 --> GIT seq 2
   Git tool: git_diff
 
 ```
-# Telemetry Analysis
+## Telemetry Analysis
 
 VeriOrigin consumes only the permitted data from the adop_g7_supply_chain\corpus path. The tool focuses on extracting relevant fields, without relying on the annotations for context. The following lists all the fields the tool collects:
 
