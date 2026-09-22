@@ -38,7 +38,7 @@ root.mainloop()
 
 # Task 1 - Importing Corpus Data:
 
-project = Path(r"\Project Source Code\adop_g7_supply_chain")
+project =  Path(__file__).resolve().parent.parent
 corpus = project / "corpus"
 
 print("Please view the following agentic actions sequence sessions")

@@ -40,14 +40,52 @@ cd adop_g7_supply_chain/
 python veriorigin_supply_chain_tool/veriorigin_prototype.py
 
 ```
-Every live session writes structured telemetry to `corpus/live-session-<date>-<id>/{clean,poisoned}.jsonl`. That telemetry, and only that telemetry, is the input your Trust and Assurance Tool is allowed to consume.
+A small GUI window will open. Click Continue to Program to proceed to the analysis or Close Program to exit.
 
-For a guided, step-by-step first run, an explanation of every file above, how to author a new task/scenario, the exact log schema, the two intentional Git-server vulnerabilities, and a checklist your team can use as proof of a completed lab session, go to **[`ADOP_Lab_Guide.md`](./ADOP_Lab_Guide.md)**.
+You will be prompted to choose from a series of live session traces. The session data is collected from running the 'python -m adop_testbed.scripts.live_mode' command, which generates a clean and poisoned log traced. See [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse) for more details. 
 
-## What you may not do
+The tool will list all the available corpus sessions. You will need make a selection with the following prompts:
 
-You may not modify the MCP reference server source code in `adop_testbed/servers/`, modify either agent host to change *what ADOP does*, or assume access to interfaces not documented here (Section F/G.3 of the Project Notebook; restated with the reasoning behind it in the Guided Lab §10).
+```bash
+Select a Session You would Like to Analyze: <session folder name>
+Select 'p' for poisoned or 'c' for clean instruction set: <p or c>
 
-## Support
+```
+## Example 
 
-Questions about the testbed's infrastructure itself (not the tool your team is designing) go to the course support channel referenced in Section G.4 of the Project Notebook. Instructor: Alexandre B. Barreto (adebarro@gmu.edu).
+```bash
+FETCH fetch_url
+  Task: task-04-summarize-mirrored-readme
+  Sequence: 1
+  Resource: https://intranet.example/mirror/README.md
+  Status: success
+
+GIT git_diff
+  Task: task-04-summarize-mirrored-readme
+  Sequence: 2
+  Resource: ../data/exfiltrated-diff.txt
+  Status: success
+
+Potential Suspicious Relationship Sequences
+------------------------------------
+Task: task-04-summarize-mirrored-readme | FETCH seq 1 --> GIT seq 2
+  Fetched resource: https://intranet.example/mirror/README.md
+  Git tool: git_diff
+
+```
+# Telemetry Analysis
+
+VeriOrigin consumes only the permitted data from the adop_g7_supply_chain\corpus path. The tool focuses on extracting relevant fields, without relying on the annotations for context. The following lists all the fields the tool collects:
+
+
+```bash
+session_id, task_id, seq, server, tool_name, target_resource, arguments, result_status, scenario_tag
+```
+
+## Future Considerations
+
+The current PoC is largely in an observational phase, focusing on filename/sequence pattern matching. These introductory insights lay the foundation for the final product, which would include:
+
+- Verifying flagged dependency origins against a maintained vetted-source registry.
+- Risk score for each agentic live session trace.
+- A full GUI implementation, opposed to relying on the command line. 
