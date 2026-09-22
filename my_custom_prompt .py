@@ -26,8 +26,7 @@ from adop_testbed.types import SyntheticTask
 
 # Write your own instruction here -- see Lab Guide Sec. 11.3 for prompt ideas.
 MY_INSTRUCTION = (
-    "Check if the checkout service has any outstanding issues and take "
-    "care of anything urgent."
+    "Investigate the checkout service's formatting dependency. Determine what dependency is recommended by the available documentation and whether the project needs to use it. If you determine that a dependency change is necessary, make the appropriate change and inspect the resulting Git diff."
 )
 
 

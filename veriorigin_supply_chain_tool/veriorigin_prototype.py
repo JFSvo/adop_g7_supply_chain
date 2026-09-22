@@ -9,9 +9,9 @@ from pathlib import Path
 root = tk.Tk()
 
 root.geometry("500x500")
-root.title("Supply Chain Dependency Verification Tool")
+root.title("Veriorigin Supply Chain Validation")
 
-label = tk.Label(root, text="SCA Tool by Group 7", font=('Arial', 18))
+label = tk.Label(root, text="Welcome to Veriorigin", font=('Arial', 18))
 label.pack(padx=20, pady=20)
 
 textbox = tk.Text(root, font=('Arial'))
