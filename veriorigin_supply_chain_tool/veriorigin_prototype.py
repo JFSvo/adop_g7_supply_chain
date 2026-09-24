@@ -83,7 +83,9 @@ with open(file_path, "r") as file:
 
         elif data ["server"] == "memory":
             event_type = "MEMORY"
-
+            
+        elif data ["server"] == "filesystem":
+            event_type = "FILESYSTEM"
         else:
             event_type = "OTHER"
 
@@ -110,7 +112,7 @@ print("------------------------------------")
 
 # Deterministic Rules:
 
-# Rule 1 - Assess MCP Server Pull Order
+# Rule 1 - Assess MCP Server Fetch vs. Git Tool Call Order
 def assess_mcp_server_pull_order(events):
 
     for event in events:
@@ -170,7 +172,7 @@ def check_dependency_change(event):
         "requirements.txt"
     ]
 
-    if event["event_type"] == "GIT":
+    if event["event_type"] == "GIT" or event["event_type"] == "FILESYSTEM":
 
         target = str(event["target_resource"]).lower()
 
@@ -184,112 +186,27 @@ for event in events:
             check_suspicious_files(event)
             check_dependency_change(event)
 
-# # GUI - In Development 
-# def run_analysis():
+# Rule 4 - Assess MCP Server Fetch vs. Git Tool Call Order
+def check_fetch_to_memory(events):
 
-#     # Create a place to temporarily capture print() output
-#     output = io.StringIO()
+    for event in events:
 
-#     # Everything printed inside this block gets captured
-#     with redirect_stdout(output):
+        if event["event_type"] == "FETCH":
 
-#         print("Supply Chain Dependency Verification Results")
-#         print("--------------------------------------------")
-#         print()
+            for later_event in events:
 
-#         # Rule 1
-#         print("RULE 1 - MCP Server Pull Order")
-#         print("--------------------------------")
-#         assess_mcp_server_pull_order(events)
+                if (
+                    later_event["event_type"] == "MEMORY"
+                    and later_event["task_id"] == event["task_id"]
+                    and later_event["seq"] > event["seq"]
+                ):
 
-#         # Rule 2
-#         print()
-#         print("RULE 2 - Suspicious Files")
-#         print("--------------------------")
+                    print(
+                        f"Task: {event['task_id']} | "
+                        f"FETCH seq {event['seq']} --> "
+                        f"MEMORY seq {later_event['seq']}"
+                    )
 
-#         for event in events:
-#             check_suspicious_files(event)
-
-#         # Rule 3
-#         print()
-#         print("RULE 3 - Dependency Changes")
-#         print("----------------------------")
-
-#         for event in events:
-#             check_dependency_change(event)
-
-#     # Get everything that was printed
-#     results = output.getvalue()
-
-#     # Put the results into the textbox
-#     output_box.delete("1.0", tk.END)
-#     output_box.insert(tk.END, results)
-
-
-# def continue_program():
-
-#     output_box.delete("1.0", tk.END)
-
-#     output_box.insert(
-#         tk.END,
-#         "Ready for another analysis.\n"
-#     )
-
-
-# def close_program():
-
-#     root.destroy()
-
-
-# # Create main window
-# root = tk.Tk()
-
-# root.title("Supply Chain Dependency Verification Tool")
-
-# # Output screen
-# output_box = scrolledtext.ScrolledText(
-#     root,
-#     width=100,
-#     height=30,
-#     wrap=tk.WORD
-# )
-
-# output_box.pack(
-#     padx=10,
-#     pady=10
-# )
-
-
-# # Button area
-# button_frame = tk.Frame(root)
-
-# button_frame.pack(pady=10)
-
-
-# # Continue button
-# continue_button = tk.Button(
-#     button_frame,
-#     text="Continue",
-#     command=continue_program
-# )
-
-# continue_button.pack(
-#     side=tk.LEFT,
-#     padx=5
-# )
-
-
-# # Close button
-# close_button = tk.Button(
-#     button_frame,
-#     text="Close Program",
-#     command=close_program
-# )
-
-# close_button.pack(
-#     side=tk.LEFT,
-#     padx=5
-# )
-
-
-# root.mainloop()
+                    print(f"  Fetched resource: {event['target_resource']}")
+                    print(f"  Memory tool: {later_event['tool_name']}")
+                    print()

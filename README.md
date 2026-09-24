@@ -1,6 +1,6 @@
 # VeriOrigin — Supply Chain Dependency Provenance Tool
 
-VeriOrigin is a Student-Developed Agent Trust and Assurance Tool built on top of the instructor-provided ADOP testbed. It implements Canonical Example 4: Supply Chain Dependency Provenance. It consumes the ADOP's point in time tool call logs and flags agent actions that possibly introduce or touch an unvetted dependency, before that change reaches the build. 
+VeriOrigin is a Student-Developed Agent Trust and Assurance Tool built on top of the instructor-provided ADOP testbed. It implements Canonical Example 4: Supply Chain Dependency Provenance. It consumes the ADOP's point in time tool call logs and flags agent actions that possibly introduce or touch an unvetted dependency, before that change reaches the build. This is aimed at stakeholders enforcing dependency provenance compliance requirements, such as cybersecurity risk managers in defense. 
 
 ## VeriOrigin Tool Location
 
@@ -9,27 +9,23 @@ This tool lives alongside the instructor provided ADOP testbed in a dedicated to
 ```bash
 adop_g7_supply_chain/
   veriorigin_supply_chain_tool/ # Central tool folder
-    veriorigin_prototype.py # Script for running the supply chain verificaiton tool
+    veriorigin_prototype.py # Script for running the supply chain verification tool
 ```
 
 To understand how to configure the testbed, please refer to the original repository's README.md, location in [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse). 
 
-This document specifically covers the steps required to run VeriOrigin, assuming all the appropiate testbed dependencies are are installed.
+This document specifically covers the steps required to run VeriOrigin, assuming all the appropiate testbed dependencies are installed.
 
 ## Requirements
 
-Certain Python libraries are required to ensure the tool runs correctly in testing. Ensure the following packages are installed prior to running the product:
+VeriOrigin uses only the Python standard library. No extra pip installs
+are needed beyond your existing testbed environment.
 
-```bash
-# reset the synthetic repository to its clean baseline
-python -m pip install tkinter
+- Python 3.11+ (already required by the testbed)
+- Tkinter, for the launch window. Included with Python on Windows/macOS.
+  On Linux, install it separately if missing: `sudo apt install python3-tk`
 
-# run the deterministic scripted host (no LLM) to sanity-check the install
-python -m pip install sys
 
-# run the full test suite
-python -m pip install pathlib
-```
 ## Running VeriOrigin
 
 ```bash
@@ -75,7 +71,7 @@ Task: task-04-summarize-mirrored-readme | FETCH seq 1 --> GIT seq 2
 ```
 ## Telemetry Analysis
 
-VeriOrigin consumes only the permitted data from the adop_g7_supply_chain\corpus path. The tool focuses on extracting relevant fields, without relying on the annotations for context. The following lists all the fields the tool collects:
+VeriOrigin consumes only the permitted data from the adop_g7_supply_chain/corpus path. The tool focuses on extracting relevant fields, without relying on the annotations for context. The following lists all the fields the tool collects:
 
 
 ```bash
@@ -88,4 +84,4 @@ The current PoC is largely in an observational phase, focusing on filename/seque
 
 - Verifying flagged dependency origins against a maintained vetted-source registry.
 - Risk score for each agentic live session trace.
-- A full GUI implementation, opposed to relying on the command line. 
+- A full GUI implementation. The current window is a launch screen only; analysis output prints to the console.
