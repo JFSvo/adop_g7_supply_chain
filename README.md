@@ -1,103 +1,87 @@
-# ADOP MVP Testbed
+# VeriOrigin — Supply Chain Dependency Provenance Tool
 
-**CYSE-587 / SYST-687 — Trust, Provenance, and Governance in MCP-Based Agentic Systems**
+VeriOrigin is a Student-Developed Agent Trust and Assurance Tool built on top of the instructor-provided ADOP testbed. It implements Canonical Example 4: Supply Chain Dependency Provenance. It consumes the ADOP's point in time tool call logs and flags agent actions that possibly introduce or touch an unvetted dependency, before that change reaches the build. This is aimed at stakeholders enforcing dependency provenance compliance requirements, such as cybersecurity risk managers in defense. 
 
-This repository is the instructor-provided testbed for the course's final project (Section G of the Project Notebook). It stands up a minimal **Agentic Development and Operations Platform (ADOP)**: an MCP-compatible agent host, four pinned MCP reference servers (Filesystem, Git, Fetch, Memory), a synthetic repository, a fixed synthetic task set, and an Observability and Audit Layer that emits JSON Lines tool-call telemetry.
+## VeriOrigin Tool Location
 
-Two of those servers, and specifically the agent driving them, intentionally reproduce the weakness classes behind two disclosed CVEs (CVE-2025-68143, CVE-2025-68144), so a live run against this testbed is real, reproducible ground truth, not a synthetic exercise.
+This tool lives alongside the instructor provided ADOP testbed in a dedicated tool folder.
 
-**This testbed is not itself graded.** What counts is the external **Student-Developed Agent Trust and Assurance Tool** your team builds on top of the logs it produces. Nothing about how well you operate the testbed factors into your grade.
-
-## Start here
-
-This repository has two companion documents. Read them in this order:
-
-| Document | Answers |
-|---|---|
-| **Project Notebook** (`CYSE_587_Project_Notebook.docx`, Canvas) | What is ADOP, why does it matter, what must my team build, and what are the deliverables? |
-| **Guided Lab** (`ADOP_Lab_Guide.md`, this repository) | How do I install this repository, run it, read its files, add my own scenarios, and prove I understand it? |
-
-This README is deliberately short. It tells you what the repository is, how it is organized, and how to get it running. For the *why* (IDP → ADOP, MCP, the autonomy spectrum, the six canonical project examples) see the Notebook. For the *how* (file-by-file walkthrough, task authoring, log schema, troubleshooting, and the lab completion checklist) see the Guided Lab.
-
-## Repository layout
-
+```bash
+adop_g7_supply_chain/
+  veriorigin_supply_chain_tool/ # Central tool folder
+    veriorigin_prototype.py # Script for running the supply chain verification tool
 ```
-adop-cyse/
-  README.md                       # this file
-  pyproject.toml
-  adop_testbed/
-    sandbox.py                    # sandbox roots + safe_resolve / unsafe_join
-    types.py                      # AuditLogRecord, SyntheticTask (pydantic)
-    audit/logger.py               # Observability & Audit Layer
-    servers/                      # the four pinned MCP servers
-    host/
-      agent_host.py               # scripted reference host (deterministic, TASK_PLANS)
-      llm_agent_host.py           # Ollama-backed LLM host (primary, live_mode)
-      annotate.py                 # generic weakness-class annotation
-      tasks/synthetic_tasks.json  # fixed synthetic task set
-    scripts/
-      live_mode.py                # primary entrypoint
-      generate_corpus.py          # produces the reference corpus
-      reset_testbed.py
-      seed_testbed_repo.py
-      onboarding_check.py
-  testbed-repo/                   # synthetic repository (its own git repo)
-  data/
-    mock-web/                     # frozen, sandboxed "internet" for the Fetch server
-    memory-store.json             # Memory server's persistent store (generated)
-  corpus/
-    clean/, poisoned/             # small reference corpus (scripted, checked in)
-    live-session-*/               # your own live sessions (generated, gitignored)
-  docs/
-    TRUST_ASSUMPTIONS.md
-    LOG_SCHEMA.md
-    log_record.schema.json
-  tests/
-  ADOP_Lab_Guide.md                # <- start your first day here
-```
+
+To understand how to configure the testbed, please refer to the original repository's README.md, location in [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse). 
+
+This document specifically covers the steps required to run VeriOrigin, assuming all the appropiate testbed dependencies are installed.
 
 ## Requirements
 
-- Python 3.11+, with `git` on `PATH`.
-- [Ollama](https://ollama.com/download), running locally, with a tool-calling-capable model pulled (default: `qwen2.5:7b`; `llama3.1:8b` also works well). See the Guided Lab §4 for model recommendations and pitfalls.
+VeriOrigin uses only the Python standard library. No extra pip installs
+are needed beyond your existing testbed environment.
 
-## Installation
+- Python 3.11+ (already required by the testbed)
+- Tkinter, for the launch window. Included with Python on Windows/macOS.
+  On Linux, install it separately if missing: `sudo apt install python3-tk`
 
-```bash
-git clone https://github.com/GMU-CYSE/adop-cyse.git
-cd adop-cyse
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-python -m adop_testbed.scripts.onboarding_check
-```
 
-The onboarding check confirms your Python version, that `git` is reachable, that the synthetic repository and mock web are present, and that the MCP SDK imports cleanly. It does not check Ollama; `live_mode` will tell you clearly if Ollama isn't reachable.
-
-## Running it
+## Running VeriOrigin
 
 ```bash
-# reset the synthetic repository to its clean baseline
-python -m adop_testbed.scripts.reset_testbed
+# Change directory to root repository folder
+cd adop_g7_supply_chain/
 
-# run the deterministic scripted host (no LLM) to sanity-check the install
-python -m adop_testbed.scripts.generate_corpus
+# Run tool to pull from a static log corpus sessions
+python veriorigin_supply_chain_tool/veriorigin_prototype.py
 
-# run the full test suite
-pytest -q
+```
+A small GUI window will open. Click Continue to Program to proceed to the analysis or Close Program to exit.
 
-# run a live session driven by your local model (the primary usage)
-python -m adop_testbed.scripts.live_mode
+You will be prompted to choose from a series of live session traces. The session data is collected from running the 'python -m adop_testbed.scripts.live_mode' command, which generates clean and poisoned log traces. See [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse) for more details. 
+
+The tool will list all the available corpus sessions. You will need make a selection with the following prompts:
+
+```bash
+Select a Session You would Like to Analyze: <session folder name>
+Select 'p' for poisoned or 'c' for clean instruction set: <p or c>
+
+```
+## Example 
+
+```bash
+FETCH fetch_url
+  Task: task-04-summarize-mirrored-readme
+  Sequence: 1
+  Resource: https://intranet.example/mirror/README.md
+  Status: success
+
+GIT git_diff
+  Task: task-04-summarize-mirrored-readme
+  Sequence: 2
+  Resource: ../data/exfiltrated-diff.txt
+  Status: success
+
+Potential Suspicious Relationship Sequences
+------------------------------------
+Task: task-04-summarize-mirrored-readme | FETCH seq 1 --> GIT seq 2
+  Fetched resource: https://intranet.example/mirror/README.md
+  Git tool: git_diff
+
+```
+## Telemetry Analysis
+
+VeriOrigin consumes only the permitted data from the adop_g7_supply_chain/corpus path. The tool focuses on extracting relevant fields, without relying on the annotations for context. The following lists all the fields the tool collects:
+
+
+```bash
+session_id, task_id, seq, server, tool_name, target_resource, arguments, result_status, scenario_tag
 ```
 
-Every live session writes structured telemetry to `corpus/live-session-<date>-<id>/{clean,poisoned}.jsonl`. That telemetry, and only that telemetry, is the input your Trust and Assurance Tool is allowed to consume.
+## Future Considerations
 
-For a guided, step-by-step first run, an explanation of every file above, how to author a new task/scenario, the exact log schema, the two intentional Git-server vulnerabilities, and a checklist your team can use as proof of a completed lab session, go to **[`ADOP_Lab_Guide.md`](./ADOP_Lab_Guide.md)**.
+The current PoC is largely in an observational phase, focusing on filename/sequence pattern matching. These introductory insights lay the foundation for the final product, which would include:
 
-## What you may not do
-
-You may not modify the MCP reference server source code in `adop_testbed/servers/`, modify either agent host to change *what ADOP does*, or assume access to interfaces not documented here (Section F/G.3 of the Project Notebook; restated with the reasoning behind it in the Guided Lab §10).
-
-## Support
-
-Questions about the testbed's infrastructure itself (not the tool your team is designing) go to the course support channel referenced in Section G.4 of the Project Notebook. Instructor: Alexandre B. Barreto (adebarro@gmu.edu).
+- Verifying flagged dependency origins against a maintained vetted-source registry.
+- Risk score for each agentic live session trace.
+- A full GUI implementation. The current window is a launch screen only; analysis output prints to the console.
