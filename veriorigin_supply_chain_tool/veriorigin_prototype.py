@@ -1,7 +1,7 @@
 import json
 import tkinter as tk
 import sys
-from tkinter import scrolledtext
+from tkinter import scrolledtext, filedialog
 from contextlib import redirect_stdout
 import io
 from pathlib import Path
@@ -19,6 +19,8 @@ textbox = tk.Text(root, font=('Arial'))
 textbox = tk.Text(root, font=('Arial'))
 
 def continue_program():
+    global file_path 
+    file_path = filedialog.askopenfilename(initialdir="./corpus", title="Select Session to Analyze", filetypes=[("JSON Lines", ".jsonl")])
     root.quit()
     root.destroy()
     
@@ -26,7 +28,7 @@ def close_program():
     root.destroy()
     sys.exit()
 
-button2 = tk.Button(root, text = "Continue to Program", width = 50, height = 5, command=continue_program)
+button2 = tk.Button(root, text = "Analyze Session", width = 50, height = 5, command=continue_program)
 button2.pack(padx = 1, pady = 10 )
 button2.pack()
 
@@ -36,29 +38,6 @@ button3.pack()
 
 root.mainloop()
 
-# Task 1 - Importing Corpus Data:
-
-project =  Path(__file__).resolve().parent.parent
-corpus = project / "corpus"
-
-print("Please view the following agentic actions sequence sessions")
-print(' ')
-
-for item in corpus.iterdir(): # Lists All Corpus Items
-    print(item)
-print('')
-
-session_choice = str(input("Select a Session You would Like to Analyze: "))
-file_choice = str(input("Select 'p' for poisoned or 'c' for clean instruction set: "))
-print('')
-
-if file_choice == 'p':
-    file_path = corpus / session_choice / 'poisoned.jsonl'
-elif file_choice == 'c':
-    file_path = corpus / session_choice / 'clean.jsonl'
-else:
-    print("You have not selected a valid file choice.")
-    
 events = [] # Store event information
 
 with open(file_path, "r") as file:
