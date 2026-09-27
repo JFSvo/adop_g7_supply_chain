@@ -4,7 +4,7 @@
 
 2. **Classify events** — tags each call as FETCH, GIT, MEMORY, FILESYSTEM, or OTHER -  # Complete
 
-3. **Dependency Provenance** - determine where a dependency came from, match it against a trusted source registry # John Svoboda
+3. **Dependency Provenance** - determine where a dependency came from, match it against a trusted source registry # Akki Kishore
    - extract the dependencies added in a commit by parsing the changed manifest files (package.json, requirements.txt, lockfiles);
    - find the matching Fetch record by package name, URL and timestamp;
    - then check that URL, and ideally the version, against the registry.
@@ -12,9 +12,9 @@
 5. **Apply detection rules and policy engine** — four deterministic checks: fetch→git sequence,
    fetch→memory sequence, suspicious resource patterns, dependency file changes # Adam Omar
 
-6. **Risk Scoring** — assign score and reccomendation (approve, review, reject) based on the findings to present to stakeholders # Akki Kishore
-
-7. **GUI and improvement** - look at ways to improve the GUI tkinter interface or polish code # Yasser Khan / Andrew Diaz
+6. **Risk Scoring** — assign score and reccomendation (approve, review, reject) based on the findings to present to stakeholders # Future Consideration
+   
+7. **GUI and improvement** - look at ways to improve the GUI tkinter interface or polish code # John Svoboda
 
 ## Development Steps
 
