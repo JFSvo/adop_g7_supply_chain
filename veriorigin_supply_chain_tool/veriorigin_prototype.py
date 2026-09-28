@@ -1,9 +1,6 @@
 import json
 import tkinter as tk
 import sys
-from tkinter import scrolledtext
-from contextlib import redirect_stdout
-import io
 from pathlib import Path
 
 root = tk.Tk()
