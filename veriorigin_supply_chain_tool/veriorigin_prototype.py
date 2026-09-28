@@ -186,7 +186,7 @@ for event in events:
             check_suspicious_files(event)
             check_dependency_change(event)
 
-# Rule 4 - Assess MCP Server Fetch vs. Git Tool Call Order
+# Rule 4 - Check for Fetch Leading to a Memory Write
 def check_fetch_to_memory(events):
 
     for event in events:
@@ -209,4 +209,11 @@ def check_fetch_to_memory(events):
 
                     print(f"  Fetched resource: {event['target_resource']}")
                     print(f"  Memory tool: {later_event['tool_name']}")
+                    print(
+                        f"  Your agent may have stored content from "
+                        f"'{event['target_resource']}' into memory. "
+                        f"Please verify this resource before trusting the stored value."
+                    )
                     print()
+
+check_fetch_to_memory(events)
