@@ -78,7 +78,7 @@ FILESYSTEM read_text_file
   Status: error
 
 ```
-# Subsequent Supply Chain Risk Report
+### Subsequent Supply Chain Risk Report
 ```bash
 
 ADOP Agentic Action Supply Chain Risk Report:
@@ -111,7 +111,7 @@ Task: task-05-add-formatting-dependency | FETCH seq 24 --> MEMORY seq 25
   Your agent may have stored content from 'https://intranet.example/unvetted-dependency-readme' into memory. Please verify this resource before trusting the stored value.
 
 ```
-## Telemetry Analysis
+### Telemetry Analysis
 
 VeriOrigin consumes only the permitted data from the adop_g7_supply_chain/corpus path. The tool focuses on extracting relevant fields, without relying on the annotations for context. The following lists all the fields the tool collects:
 
