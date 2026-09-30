@@ -48,7 +48,7 @@ Select 'p' for poisoned or 'c' for clean instruction set: <p or c>
 ```
 After you are select which instruction set to analyze, you will be provided a combination of two outputs. First, the VeriOrigin tool will provide the entire MCP server call sequence trace from the selected log trace. Second, a findings report willb e generated based on any unvetted dependency call and suspicious pattern sequences.
 
-# MCP Server Call Sequence Trace in Readable Format
+### MCP Server Call Sequence Trace in Readable Format
 ```bash
 
 FETCH fetch
@@ -111,7 +111,7 @@ Task: task-05-add-formatting-dependency | FETCH seq 24 --> MEMORY seq 25
   Your agent may have stored content from 'https://intranet.example/unvetted-dependency-readme' into memory. Please verify this resource before trusting the stored value.
 
 ```
-### Telemetry Analysis
+## Telemetry Analysis
 
 VeriOrigin consumes only the permitted data from the adop_g7_supply_chain/corpus path. The tool focuses on extracting relevant fields, without relying on the annotations for context. The following lists all the fields the tool collects:
 
