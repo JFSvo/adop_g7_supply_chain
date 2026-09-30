@@ -48,7 +48,7 @@ Select 'p' for poisoned or 'c' for clean instruction set: <p or c>
 ```
 After you are select which instruction set to analyze, you will be provided a combination of two outputs. First, the VeriOrigin tool will provide the entire MCP server call sequence trace from the selected log trace. Second, a findings report willb e generated based on any unvetted dependency call and suspicious pattern sequences.
 
-## MCP Server Call Sequence Trace in Readable Format
+# MCP Server Call Sequence Trace in Readable Format
 ```bash
 
 FETCH fetch
@@ -78,7 +78,7 @@ FILESYSTEM read_text_file
   Status: error
 
 ```
-## Subsequent Supply Chain Risk Report
+# Subsequent Supply Chain Risk Report
 ```bash
 
 ADOP Agentic Action Supply Chain Risk Report:
