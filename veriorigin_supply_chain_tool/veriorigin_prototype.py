@@ -1,18 +1,19 @@
 import json
 import tkinter as tk
-import sys
 from tkinter import filedialog
+import sys
+import re
 from pathlib import Path
 
 root = tk.Tk()
 
 root.geometry("500x500")
-root.title("Veriorigin Supply Chain Validation")
+root.title("VeriOrigin Supply Chain Validation")
 
-label = tk.Label(root, text="Welcome to Veriorigin", font=('Arial', 18))
+label = tk.Label(root, text="Welcome to VeriOrigin", font=('Arial', 18))
 label.pack(padx=20, pady=20)
 
-textbox = tk.Text(root, font=('Arial'))
+
 
 textbox = tk.Text(root, font=('Arial'))
 
@@ -36,8 +37,12 @@ button3.pack()
 
 root.mainloop()
 
+project =  Path(__file__).resolve().parent.parent
+    
 events = [] # Store event information
 
+print("MCP Server Tool Call Summary")
+print()
 with open(file_path, "r") as file:
     for line in file:
         data = json.loads(line)
@@ -84,86 +89,61 @@ with open(file_path, "r") as file:
         print(f"  Status: {result_status}")
 
 print()
-print("Potential Suspicious Relationship Sequences")
-print("------------------------------------")
-
+print("ADOP Agentic Action Supply Chain Risk Report:")
+print()
 # Deterministic Rules:
 
-# Rule 1 - Assess MCP Server Fetch vs. Git Tool Call Order
-def assess_mcp_server_pull_order(events):
+# Rule 1 - Check Dependencies Against the Vetted Registry
 
-    for event in events:
+def load_vetted_registry():
 
-        if event["event_type"] == "FETCH":
+    registry = project / "data" / "mock-web" / "vetted-source-registry.md"
+    vetted = []
 
-            for later_event in events:
+    for line in registry.read_text().splitlines():
+        if line.startswith("- "):
+            vetted.append(line[2:].split(" ")[0])
 
-                if (
-                    later_event["event_type"] == "GIT"
-                    and later_event["task_id"] == event["task_id"]
-                    and later_event["seq"] > event["seq"]
-                ):
-
-                    print(
-                        f"Task: {event['task_id']} | "
-                        f"FETCH seq {event['seq']} --> "
-                        f"GIT seq {later_event['seq']}"
-                    )
-
-                    print(f"  Fetched resource: {event['target_resource']}")
-                    print(f"  Git tool: {later_event['tool_name']}")
-                    print()
+    return vetted
 
 
-# Rule 2 - Check for Suspicious Files
-def check_suspicious_files(event):
+def check_vetted_registry(event, vetted):
 
-    SUSPICIOUS_RESOURCES = [
-        ".js",
-        ".env",
-        "credentials",
-        "password",
-        "secret",
-        "token",
-        "id_rsa",
-    ]
+    args = event["arguments"]
+    found = []
 
-    target = event["target_resource"].lower()
-    tool_name = event["tool_name"].lower()
+    if event["tool_name"] == "write_file" and "package.json" in str(event["target_resource"]).lower():
 
-    if any(pattern in target for pattern in SUSPICIOUS_RESOURCES):
-        print(
-            f"Your agent had attempted to perform the MCP call "
-            f"'{tool_name}' from the '{target}' resource. "
-            f"Please verify the resource is a valid dependency."
-        )
+        content = str(args.get("content", ""))
 
-assess_mcp_server_pull_order(events)
+        if '"dependencies"' in content:
+            content = content.split('"dependencies"')[-1]
+            found = re.findall(r'"([^"]+)"\s*:\s*"[\^~]?\d', content)
 
-# Rule 3 - Check for Dependency Changes
+    elif event["tool_name"] == "memory_set" and args.get("namespace") == "dependencies":
+        found = [str(args.get("key")).replace("-version", "")]
 
-def check_dependency_change(event):
-    
-    dependencies = [
-        "package.json",
-        "requirements.txt"
-    ]
-
-    if event["event_type"] == "GIT" or event["event_type"] == "FILESYSTEM":
-
-        target = str(event["target_resource"]).lower()
-
-        if any(file in target for file in dependencies):
+    for name in found:
+        if name not in vetted:
+            print(f"Unvetted dependency: {name}")
+            print(f"  Task: {event['task_id']} | {event['tool_name']} seq {event['seq']}")
             print(
-                f"Potential dependency change detected: "
-                f"{event['target_resource']}"
+                "  Not found in the vetted source registry. "
+                "A supply-chain review is required before it is added to package.json."
             )
+            print()
+
+print("Unvetted Dependencies")
+print("------------------------------------")
+vetted = load_vetted_registry()
 
 for event in events:
-            check_suspicious_files(event)
-            check_dependency_change(event)
+    check_vetted_registry(event, vetted)
+            
+# Rule 2 - See if a fetched dependency was saved into memory
 
-# Rule 4 - Check for Fetch Leading to a Memory Write
+print("Stored Resource Dependencies in Memory")
+print("------------------------------------")
 def check_fetch_to_memory(events):
 
     for event in events:
@@ -194,3 +174,88 @@ def check_fetch_to_memory(events):
                     print()
 
 check_fetch_to_memory(events)
+
+# Rule 3 - Assess how a fetched dependency moved towards a commit
+
+print("Fetch to Git Sequences")
+print("------------------------------------")
+def assess_mcp_server_pull_order(events):
+
+    for event in events:
+
+        if event["event_type"] == "FETCH":
+
+            for later_event in events:
+
+                if (
+                    later_event["event_type"] == "GIT"
+                    and later_event["task_id"] == event["task_id"]
+                    and later_event["seq"] > event["seq"]
+                ):
+
+                    print(
+                        f"Task: {event['task_id']} | "
+                        f"FETCH seq {event['seq']} --> "
+                        f"GIT seq {later_event['seq']}"
+                    )
+
+                    print(f"  Fetched resource: {event['target_resource']}")
+                    print(f"  Git tool: {later_event['tool_name']}")
+
+assess_mcp_server_pull_order(events)
+
+# Rule 4 - See if dependencies were modified 
+print("Potential Dependency Changes")
+print("------------------------------------")
+def check_dependency_change(event):
+    
+    dependencies = [
+        "package.json",
+        "requirements.txt"
+    ]
+
+    if event["event_type"] == "GIT" or event["event_type"] == "FILESYSTEM":
+
+        target = str(event["target_resource"]).lower()
+
+        if any(file in target for file in dependencies):
+            print(
+                f"Potential dependency change detected: "
+                f"{event['target_resource']}"
+            )
+            print()
+        
+for event in events: 
+    check_dependency_change(event)
+
+# Rule 5 - Check for suspicious files pulled into the repository
+
+print("Suspicious Resources")
+print("------------------------------------")
+def check_suspicious_files(event):
+
+    SUSPICIOUS_RESOURCES = [
+
+        ".env",
+        "credentials",
+        "password",
+        "secret",
+        "token",
+        "id_rsa",
+    ]
+
+    target = event["target_resource"].lower()
+    tool_name = event["tool_name"].lower()
+
+    if any(pattern in target for pattern in SUSPICIOUS_RESOURCES):
+        print(
+            f"Your agent had attempted to perform the MCP call "
+            f"'{tool_name}' from the '{target}' resource. "
+            f"Please verify the resource is a valid dependency."
+        )
+        print()
+    
+check_suspicious_files(event)
+
+
+
