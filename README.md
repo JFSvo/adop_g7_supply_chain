@@ -9,7 +9,7 @@ This tool lives alongside the instructor provided ADOP testbed in a dedicated to
 ```bash
 adop_g7_supply_chain/
   veriorigin_supply_chain_tool/ # Central tool folder
-    veriorigin_prototype.py # Script for running the supply chain verification tool
+    veriorigin_analyzer.py # Script for running the supply chain verification tool
 ```
 
 To understand how to configure the testbed, please refer to the original repository's README.md, location in [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse). 
@@ -32,7 +32,7 @@ are needed beyond your existing testbed environment.
 cd adop_g7_supply_chain/
 
 # Run tool to pull from a static log corpus sessions
-python veriorigin_supply_chain_tool/veriorigin_prototype.py
+python veriorigin_supply_chain_tool/veriorigin_analyzer.py
 
 ```
 A small GUI window will open. Click Continue to Program to proceed to the analysis or Close Program to exit.
