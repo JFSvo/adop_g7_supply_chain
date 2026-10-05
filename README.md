@@ -33,7 +33,7 @@ are needed beyond your existing testbed environment.
 cd adop_g7_supply_chain/
 
 # Run tool to pull from a static log corpus sessions
-python veriorigin_supply_chain_tool/veriorigin_prototype.py
+python veriorigin_supply_chain_tool/veriorigin_analyzer.py
 
 ```
 A small GUI window will open. Click Continue to Program to proceed to the analysis or Close Program to exit.
