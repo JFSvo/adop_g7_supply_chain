@@ -5,6 +5,7 @@ from tkinter import scrolledtext
 from contextlib import redirect_stdout
 import io
 from pathlib import Path
+from provenance_analysis import analyze_events, load_events, load_registry, print_reports
 
 root = tk.Tk()
 
@@ -117,12 +118,14 @@ def assess_mcp_server_pull_order(events):
 
     for event in events:
 
-        if event["event_type"] == "FETCH":
+        if event["event_type"] == "FETCH" and event["tool_name"] == "fetch" and event["result_status"] == "success":
 
             for later_event in events:
 
                 if (
                     later_event["event_type"] == "GIT"
+                    and later_event["session_id"] == event["session_id"]
+                    and later_event["result_status"] == "success"
                     and later_event["task_id"] == event["task_id"]
                     and later_event["seq"] > event["seq"]
                 ):
@@ -142,7 +145,6 @@ def assess_mcp_server_pull_order(events):
 def check_suspicious_files(event):
 
     SUSPICIOUS_RESOURCES = [
-        ".js",
         ".env",
         "credentials",
         "password",
@@ -166,21 +168,49 @@ assess_mcp_server_pull_order(events)
 # Rule 3 - Check for Dependency Changes
 
 def check_dependency_change(event):
-    
-    dependencies = [
-        "package.json",
-        "requirements.txt"
-    ]
+    if event.get("result_status") != "success":
+        return
 
-    if event["event_type"] == "GIT" or event["event_type"] == "FILESYSTEM":
+    arguments = event.get("arguments") or {}
+    target = str(arguments.get("path") or event.get("target_resource") or "")
+    filename = target.replace("\\", "/").rsplit("/", 1)[-1]
 
-        target = str(event["target_resource"]).lower()
+    if filename not in ("package.json", "requirements.txt"):
+        return
 
-        if any(file in target for file in dependencies):
-            print(
-                f"Potential dependency change detected: "
-                f"{event['target_resource']}"
-            )
+    is_write = event.get("event_type") == "FILESYSTEM" and event.get("tool_name") == "write_file"
+    is_staged = event.get("event_type") == "GIT" and event.get("tool_name") == "git_add"
+
+    if not (is_write or is_staged):
+        return
+
+    action = "written" if is_write else "staged"
+    print(
+        f"Dependency manifest {action}: {target} | "
+        f"Task: {event.get('task_id')} | Sequence: {event.get('seq')}"
+    )
+
+    if not is_write or filename != "package.json":
+        return
+
+    try:
+        manifest = json.loads(arguments.get("content", ""))
+    except (json.JSONDecodeError, TypeError):
+        print("  Dependency details unavailable: invalid package.json content.")
+        return
+
+    if not isinstance(manifest, dict):
+        print("  Dependency details unavailable: package.json must contain an object.")
+        return
+
+    for section in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
+        dependencies = manifest.get(section, {})
+        if not isinstance(dependencies, dict):
+            print(f"  Dependency details unavailable: {section} must contain an object.")
+            continue
+
+        for package, version in sorted(dependencies.items()):
+            print(f"  Observed dependency: {package} {version} ({section})")
 
 for event in events:
             check_suspicious_files(event)
@@ -191,12 +221,15 @@ def check_fetch_to_memory(events):
 
     for event in events:
 
-        if event["event_type"] == "FETCH":
+        if event["event_type"] == "FETCH" and event["tool_name"] == "fetch" and event["result_status"] == "success":
 
             for later_event in events:
 
                 if (
                     later_event["event_type"] == "MEMORY"
+                    and later_event["tool_name"] == "memory_set"
+                    and later_event["session_id"] == event["session_id"]
+                    and later_event["result_status"] == "success"
                     and later_event["task_id"] == event["task_id"]
                     and later_event["seq"] > event["seq"]
                 ):
@@ -210,3 +243,24 @@ def check_fetch_to_memory(events):
                     print(f"  Fetched resource: {event['target_resource']}")
                     print(f"  Memory tool: {later_event['tool_name']}")
                     print()
+
+check_fetch_to_memory(events)
+
+analysis_paths = [Path(file_path)]
+selected_path = Path(file_path)
+if selected_path.name in ("clean.jsonl", "poisoned.jsonl"):
+    companion_name = "poisoned.jsonl" if selected_path.name == "clean.jsonl" else "clean.jsonl"
+    companion_path = selected_path.with_name(companion_name)
+elif selected_path.parent.name in ("clean", "poisoned"):
+    companion_name = "poisoned" if selected_path.parent.name == "clean" else "clean"
+    companion_path = selected_path.parent.parent / companion_name / selected_path.name
+else:
+    companion_path = None
+
+if companion_path is not None and companion_path.is_file():
+    analysis_paths.append(companion_path)
+
+try:
+    print_reports(analyze_events(load_events(analysis_paths), load_registry()))
+except (OSError, ValueError) as exc:
+    print(f"Dependency provenance analysis failed: {exc}")
