@@ -13,7 +13,7 @@ def load_events(paths):
         path = Path(path)
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if not line.strip():
-                continue
+                  continue
             try:
                 event = json.loads(line)
                 if not isinstance(event, dict):
