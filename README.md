@@ -8,14 +8,14 @@ This tool lives alongside the instructor provided ADOP testbed in a dedicated to
 
 ```bash
 veriorigin_supply_chain_tool/
-  veriorigin_prototype.py       # Entry point, GUI launch, ingestion, rule output
-  provenance_analysis.py        # Dependency state tracking and registry/source checks
+  veriorigin_analyzer.py        # Entry point: session picker, readable trace, findings output
+  provenance_analysis.py        # All detection rules: dependency state, registry/source checks, scope checks
   test_provenance_analysis.py   # Unit testing framework
 ```
 
 To understand how to configure the testbed, please refer to the original repository's README.md, location in [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse). 
 
-This document specifically covers the steps required to run VeriOrigin, assuming all the appropiate testbed dependencies are installed.
+This document specifically covers the steps required to run VeriOrigin, assuming all the appropriate testbed dependencies are installed.
 
 ## Requirements
 
@@ -33,21 +33,35 @@ are needed beyond your existing testbed environment.
 cd adop_g7_supply_chain/
 
 # Run tool to pull from a static log corpus sessions
-python veriorigin_supply_chain_tool/veriorigin_prototype.py
+python veriorigin_supply_chain_tool/veriorigin_analyzer.py
 
 ```
-A small GUI window will open. Click Continue to Program to proceed to the analysis or Close Program to exit.
+A small window will open. Click **Analyze Session** to choose a session file, or **Close Program** to exit.
 
-You will be prompted to choose from a series of live session traces. The session data is collected from running the 'python -m adop_testbed.scripts.live_mode' command, which generates clean and poisoned log traces. See [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse) for more details. 
+A file dialog opens in the `corpus/` folder. Select any `clean.jsonl` or `poisoned.jsonl` file. Live session folders are created by running `python -m adop_testbed.scripts.live_mode`; see [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse) for details.
 
-The tool will list all the available corpus sessions. You will need make a selection with the following prompts:
+ADOP writes one session across two files: the poisoned run continues the clean run's sequence numbers. VeriOrigin therefore loads the matching companion file automatically, so the session is analysed as one complete timeline. The first line of the output lists the files that were analysed.
+
+The output has two parts: the full MCP server call sequence trace, then a findings report split into dependency findings and other agent boundary findings.
+
+### Running without the GUI
+
+The detection module can also be run directly, which is useful for backend and repeatable testing:
 
 ```bash
-Select a Session You would Like to Analyze: live-session-live-2026-09-07-b62f31
-Select 'p' for poisoned or 'c' for clean instruction set (ignored for the static poisoned/clean folders):
+# Analyse a session (the companion file is added automatically)
+python veriorigin_supply_chain_tool/provenance_analysis.py corpus/live-session-live-2026-09-07-b62f31/poisoned.jsonl
 
+# Analyse only the given file, and save the findings as JSON
+python veriorigin_supply_chain_tool/provenance_analysis.py corpus/poisoned/session-01.jsonl --no-companion --output findings.json
 ```
-After you are select which instruction set to analyze, you will be provided a combination of two outputs. First, the VeriOrigin tool will provide the entire MCP server call sequence trace from the selected log trace. Second, a findings report willb e generated based on any unvetted dependency call and suspicious pattern sequences.
+
+### Running the unit tests
+
+```bash
+cd veriorigin_supply_chain_tool
+python -m pytest -q test_provenance_analysis.py
+```
 
 ### MCP Server Call Sequence Trace in Readable Format
 ```bash
