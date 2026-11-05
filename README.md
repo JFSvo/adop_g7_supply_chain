@@ -38,9 +38,9 @@ python veriorigin_supply_chain_tool/veriorigin_analyzer.py
 ```
 A small window will open. Click **Analyze Session** to choose a session file, or **Close Program** to exit.
 
-A file dialog opens in the `corpus/` folder. Select any `clean.jsonl` or `poisoned.jsonl` file. Live session folders are created by running `python -m adop_testbed.scripts.live_mode`; see [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse) for details.
+A file dialog opens in the `corpus/` folder. Select any `clean.jsonl` or `poisoned.jsonl` file. Live session folders are created by running `python -m adop_testbed.scripts.live_mode`. See [GMU-CYSE/adop-cyse](https://github.com/GMU-CYSE/adop-cyse) for details.
 
-ADOP writes one session across two files: the poisoned run continues the clean run's sequence numbers. VeriOrigin therefore loads the matching companion file automatically, so the session is analysed as one complete timeline. The first line of the output lists the files that were analysed.
+ADOP writes one session across two files: the clean and poisoned runs. VeriOrigin loads the matching companion file automatically, so the session is analysed as one complete timeline. The first line of the output lists the files that were analysed.
 
 The output has two parts: the full MCP server call sequence trace, then a findings report split into dependency findings and other agent boundary findings.
 
