@@ -1,242 +1,58 @@
-import json
-import tkinter as tk
 import sys
-from tkinter import scrolledtext, filedialog
-from contextlib import redirect_stdout
-import io
-import re
+import tkinter as tk
 from pathlib import Path
-from provenance_analysis import analyze_events, load_events, load_registry
+from tkinter import filedialog
  
-root = tk.Tk()
+from provenance_analysis import analyze_events, load_events, load_registry, with_companions
  
-root.geometry("500x500")
-root.title("Veriorigin Supply Chain Validation")
- 
-label = tk.Label(root, text="Welcome to Veriorigin", font=('Arial', 18))
-label.pack(padx=20, pady=20)
- 
-textbox = tk.Text(root, font=('Arial'))
- 
-textbox = tk.Text(root, font=('Arial'))
- 
-def continue_program():
-    global file_path 
-    file_path = filedialog.askopenfilename(initialdir="./corpus", title="Select Session to Analyze", filetypes=[("JSON Lines", ".jsonl")])
-    root.quit()
-    root.destroy()
-    
-def close_program():
-    root.destroy()
-    sys.exit()
- 
-button2 = tk.Button(root, text = "Analyze Session", width = 50, height = 5, command=continue_program)
-button2.pack(padx = 1, pady = 10 )
-button2.pack()
- 
-button3 = tk.Button(root, text = "Close Program", width = 50, height = 5, command=close_program)
-button3.pack(padx = 1, pady = 10 )
-button3.pack()
- 
-root.mainloop()
- 
-# Task 1 - Importing Corpus Data:
- 
-project =  Path(__file__).resolve().parent.parent
-corpus = project / "corpus"
-    
-events = [] # Store event information
- 
-with open(file_path, "r") as file:
-    for line in file:
-        data = json.loads(line)
-        
-        session_id = data.get("session_id")
-        task_id = data.get("task_id")
-        seq = data.get("seq")
-        server = data.get("server")
-        tool_name = data.get("tool_name")
-        target_resource = data.get("target_resource")
-        arguments = data.get("arguments")
-        result_status = data.get("result_status")
- 
-        # Classify event type
-        if data["server"] == "fetch":
-            event_type = "FETCH"
- 
-        elif data ["server"] == "git":
-            event_type = "GIT"
- 
-        elif data ["server"] == "memory":
-            event_type = "MEMORY"
-            
-        elif data ["server"] == "filesystem":
-            event_type = "FILESYSTEM"
-        else:
-            event_type = "OTHER"
- 
-        events.append({
-            "session_id": session_id,
-            "task_id": task_id,
-            "seq": seq,
-            "event_type": event_type,
-            "tool_name": tool_name,
-            "target_resource": target_resource,
-            "arguments": arguments,
-            "result_status": result_status
-        })
- 
-        print(event_type, data['tool_name'])
-        print(f"  Task: {task_id}")
-        print(f"  Sequence: {seq}")
-        print(f"  Resource: {target_resource}")
-        print(f"  Status: {result_status}")
- 
-# Dependency provenance analysis, covers manifest state tracking and registry/source checks
-analysis_paths = [Path(file_path)]
-selected_path = Path(file_path)
-if selected_path.name in ("clean.jsonl", "poisoned.jsonl"):
-    companion_name = "poisoned.jsonl" if selected_path.name == "clean.jsonl" else "clean.jsonl"
-    companion_path = selected_path.with_name(companion_name)
-elif selected_path.parent.name in ("clean", "poisoned"):
-    companion_name = "poisoned" if selected_path.parent.name == "clean" else "clean"
-    companion_path = selected_path.parent.parent / companion_name / selected_path.name
-else:
-    companion_path = None
- 
-if companion_path is not None and companion_path.is_file():
-    analysis_paths.append(companion_path)
- 
-reports = []
-try:
-    reports = analyze_events(load_events(analysis_paths), load_registry())
-except (OSError, ValueError) as exc:
-    print(f"Dependency provenance analysis failed: {exc}")
- 
-print()
-for report in reports:
-    print(f"Session: {report['session_id']} | Recommendation: {report['recommendation']}")
- 
-print()
-print("Suspicious Resource Checks")
-print("------------------------------------")
- 
-# Rule - Check for Suspicious Files
-def check_suspicious_files(event):
- 
-    SUSPICIOUS_RESOURCES = [
-        ".env",
-        "credentials",
-        "password",
-        "secret",
-        "token",
-        "id_rsa",
-    ]
- 
-    target = event["target_resource"].lower()
-    tool_name = event["tool_name"].lower()
- 
-    if any(pattern in target for pattern in SUSPICIOUS_RESOURCES):
-        print(
-            f"Your agent had attempted to perform the MCP call "
-            f"'{tool_name}' from the '{target}' resource. "
-            f"Please verify the resource is a valid dependency."
-        )
- 
-for event in events:
-    check_suspicious_files(event)
- 
-print()
-print("Early Signals (pre-manifest)")
-print("------------------------------------")
- 
-# Rule - Check Dependencies Against the Vetted Registry
-def load_vetted_registry():
- 
-    registry = project / "data" / "mock-web" / "vetted-source-registry.md"
-    vetted = []
- 
-    for line in registry.read_text().splitlines():
-        if line.startswith("- "):
-            vetted.append(line[2:].split(" ")[0])
- 
-    return vetted
+PROJECT = Path(__file__).resolve().parent.parent
+file_path = None
+EARLY_SIGNAL_RULES = {"FETCH_TO_MEMORY", "DEPENDENCY_WRITE_ATTEMPT", "MEMORY_APPROVAL_CLAIM"}
  
  
-def check_vetted_registry(event, vetted):
+def choose_session():
+    root = tk.Tk()
+    root.geometry("500x500")
+    root.title("VeriOrigin Supply Chain Validation")
+    tk.Label(root, text="Welcome to VeriOrigin", font=("Arial", 18)).pack(padx=20, pady=20)
  
-    args = event["arguments"]
-    found = []
+    def continue_program():
+        global file_path
+        file_path = filedialog.askopenfilename(initialdir=PROJECT / "corpus", title="Select Session to Analyze",
+                                               filetypes=[("JSON Lines", ".jsonl")])
+        root.destroy()
  
-    if event["tool_name"] == "write_file" and "package.json" in str(event["target_resource"]).lower():
+    def close_program():
+        root.destroy()
+        sys.exit()
  
-        content = str(args.get("content", ""))
- 
-        if '"dependencies"' in content:
-            content = content.split('"dependencies"')[-1]
-            found = re.findall(r'"([^"]+)"\s*:\s*"[\^~]?\d', content)
- 
-    elif event["tool_name"] == "memory_set" and args.get("namespace") == "dependencies":
-        found = [str(args.get("key")).replace("-version", "")]
- 
-    for name in found:
-        if name not in vetted:
-            print(f"Unvetted dependency: {name}")
-            print(f"  Task: {event['task_id']} | {event['tool_name']} seq {event['seq']}")
-            print(
-                "  Not found in the vetted source registry. "
-                "A supply-chain review is required before it is added to package.json."
-            )
-            print()
+    tk.Button(root, text="Analyze Session", width=50, height=5, command=continue_program).pack(padx=1, pady=10)
+    tk.Button(root, text="Close Program", width=50, height=5, command=close_program).pack(padx=1, pady=10)
+    root.mainloop()
  
  
-vetted = load_vetted_registry()
-for event in events:
-    check_vetted_registry(event, vetted)
- 
-# Rule - Check for Fetch Leading to a Memory Write
-def check_fetch_to_memory(events):
- 
+def print_trace(events):
+    print("MCP Server Call Sequence Trace")
+    print("------------------------------------")
     for event in events:
+        print(event["server"].upper(), event["tool_name"])
+        print(f"  Task: {event['task_id']}")
+        print(f"  Sequence: {event['seq']}")
+        print(f"  Resource: {event.get('target_resource')}")
+        print(f"  Status: {event['result_status']}")
  
-        if event["event_type"] == "FETCH":
  
-            for later_event in events:
- 
-                if (
-                    later_event["event_type"] == "MEMORY"
-                    and later_event["task_id"] == event["task_id"]
-                    and later_event["seq"] > event["seq"]
-                ):
- 
-                    print(
-                        f"Task: {event['task_id']} | "
-                        f"FETCH seq {event['seq']} --> "
-                        f"MEMORY seq {later_event['seq']}"
-                    )
- 
-                    print(f"  Fetched resource: {event['target_resource']}")
-                    print(f"  Memory tool: {later_event['tool_name']}")
-                    print(
-                        f"  Your agent may have stored content from "
-                        f"'{event['target_resource']}' into memory. "
-                        f"Please verify this resource before trusting the stored value."
-                    )
-                    print()
- 
-check_fetch_to_memory(events)
- 
-# Print the module's findings as two sections: dependency findings vs everything else.
-# A finding has a "package" key only when it is tied to a specific dependency.
 def print_split_findings(reports):
- 
+    # A finding has a "package" key only when it is tied to a specific dependency.
     for report in reports:
- 
+        print()
+        print(f"Session: {report['session_id']} | Events: {report['event_count']} | Recommendation: {report['recommendation']}")
         dependency_findings = [f for f in report["findings"] if "package" in f]
-        boundary_findings = [f for f in report["findings"] if "package" not in f]
+        early_signals = [f for f in report["findings"] if "package" not in f and f["rule_id"] in EARLY_SIGNAL_RULES]
+        boundary_findings = [f for f in report["findings"] if "package" not in f and f["rule_id"] not in EARLY_SIGNAL_RULES]
  
         print()
-        print("Confirmed Dependency Findings (manifest + commit verified)")
+        print("Dependency Findings")
         print("------------------------------------")
         if not dependency_findings:
             print("  None for this session.")
@@ -244,7 +60,7 @@ def print_split_findings(reports):
             print(f"  {finding['severity'].upper()} {finding['rule_id']}: {finding['message']}")
             print(f"    Task: {finding['task_id']}")
             print(f"    Evidence sequences: {finding['evidence_seq']}")
-            print(f"    Manifest: {finding['path']}")
+            print(f"    Location: {finding['path']}")
             print(f"    Package: {finding['package']} {finding['requested_version']} | {finding['change']} | {finding['state']}")
             print(f"    Package registry: {finding['registry_status']} | Source registry: {finding['source_registry_status']}")
             print(f"    Artifact provenance: {finding['artifact_provenance']}")
@@ -257,7 +73,21 @@ def print_split_findings(reports):
                 print(f"    Similar vetted names requiring review: {finding['similar_vetted_packages']}")
  
         print()
-        print("Other Agent Boundary Violations")
+        print("Early Signals (pre-manifest)")
+        print("------------------------------------")
+        if not early_signals:
+            print("  None for this session.")
+        for finding in early_signals:
+            print(f"  {finding['severity'].upper()} {finding['rule_id']}: {finding['message']}")
+            print(f"    Task: {finding['task_id']}")
+            print(f"    Evidence sequences: {finding['evidence_seq']}")
+            for resource in finding.get("fetched_resources", []):
+                print(f"    Fetched resource: {resource}")
+            if finding.get("resource") or finding.get("path"):
+                print(f"    Resource: {finding.get('resource') or finding.get('path')}")
+ 
+        print()
+        print("Other Agent Boundary Findings")
         print("------------------------------------")
         if not boundary_findings:
             print("  None for this session.")
@@ -265,5 +95,26 @@ def print_split_findings(reports):
             print(f"  {finding['severity'].upper()} {finding['rule_id']}: {finding['message']}")
             print(f"    Task: {finding['task_id']}")
             print(f"    Evidence sequences: {finding['evidence_seq']}")
+            if finding.get("path"):
+                print(f"    Resource: {finding['path']}")
  
-print_split_findings(reports)
+ 
+def main():
+    choose_session()
+    if not file_path:
+        sys.exit("No session selected.")
+    paths = with_companions([file_path])
+    try:
+        events = load_events(paths)
+        reports = analyze_events(events, load_registry())
+    except (OSError, ValueError) as exc:
+        sys.exit(f"Dependency provenance analysis failed: {exc}")
+    print("Files analysed: " + ", ".join(str(path.relative_to(PROJECT)) for path in paths))
+    print()
+    print_trace(events)
+    print_split_findings(reports)
+ 
+ 
+if __name__ == "__main__":
+    main()
+ 
