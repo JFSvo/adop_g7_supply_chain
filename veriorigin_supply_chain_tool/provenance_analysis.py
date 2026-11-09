@@ -11,7 +11,7 @@ def load_events(paths):
     seen = set()
     for path in paths:
         path = Path(path)
-        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        for number, line in enumerate(path.read_text(encoding="utf8-").splitlines(), 1):
             if not line.strip():
                   continue
             try:
@@ -204,7 +204,8 @@ def analyze_events(events, registry=None):
                         result_status=event["result_status"], path=path)
             if tool == "git_diff" and any(token.startswith("-") for token in str(arguments.get("pathspec", "")).split()):
                 add("GIT_PATHSPEC_FLAGS", "high" if successful else "medium",
-                    "Git pathspec contains command-line flags.", [event["seq"]], result_status=event["result_status"])
+                    "Git pathspec contains command-line flags.", [event["seq"]], result_status=event["result_status"],
+                    path=str(arguments.get("pathspec", "")))
             if tool == "git_add" and successful:
                 path = resource_path(event)
                 for pending_path, findings in state["pending"].items():
