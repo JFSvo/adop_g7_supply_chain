@@ -1,4 +1,5 @@
 # VeriOrigin — Supply Chain Dependency Provenance Tool
+![alt text](veriorigin_supply_chain_tool/VeriOrigin_logo.png)
 
 VeriOrigin is a Student-Developed Agent Trust and Assurance Tool built on top of the instructor-provided ADOP testbed. It implements Canonical Example 4: Supply Chain Dependency Provenance. It consumes the ADOP's point in time tool call logs and flags agent actions that possibly introduce or touch an unvetted dependency, before that change reaches the build. This is aimed at stakeholders enforcing dependency provenance compliance requirements, such as cybersecurity risk managers in defense. 
 
