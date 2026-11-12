@@ -1,9 +1,11 @@
 import sys
 from PySide6.QtWidgets import *
-from PySide6.QtCore import Signal
+from PySide6.QtGui import QPixmap
+from PySide6.QtCore import Qt, Signal
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
+LOGO_PATH = Path(__file__).resolve().parent / "VeriOrigin_logo.png"
 
 class stackedExample(QWidget):
 
@@ -30,15 +32,27 @@ class stackedExample(QWidget):
         self.setWindowTitle('VeriOrigin Analyzer')
         self.show()
         
+
     def stack1UI(self):
-        layout = QFormLayout()
+        layout = QVBoxLayout()
+
+        logo = QLabel()
+        pixmap = QPixmap(str(LOGO_PATH))
+        logo.setPixmap(pixmap)
+        logo.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        layout.addWidget(logo)
+
+        layout.addSpacing(20)
+
         file_dialog_button = QPushButton("Analyze Session")
         file_dialog_button.clicked.connect(self.choose_file)
-        layout.addRow(file_dialog_button)
+        layout.addWidget(file_dialog_button, alignment=Qt.AlignHCenter)
+
         quit_button = QPushButton("Quit")
-        quit_button.clicked.connect(lambda: self.close())
-        layout.addRow(quit_button)
-        #self.setTabText(0,"Contact Details")
+        quit_button.clicked.connect(self.close)
+        layout.addWidget(quit_button, alignment=Qt.AlignHCenter)
+
+        layout.addStretch()  # pushes everything to the top
         self.stack1.setLayout(layout)
         
     def stack2UI(self):
