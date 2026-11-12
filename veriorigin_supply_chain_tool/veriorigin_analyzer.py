@@ -1,34 +1,16 @@
 import sys
-import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog
  
 from provenance_analysis import analyze_events, load_events, load_registry, with_companions
+
+from PySide6.QtWidgets import QApplication
+from user_interface import choose_session
+
+
  
 PROJECT = Path(__file__).resolve().parent.parent
 file_path = None
 EARLY_SIGNAL_RULES = {"FETCH_TO_MEMORY", "DEPENDENCY_WRITE_ATTEMPT", "MEMORY_APPROVAL_CLAIM"}
- 
- 
-def choose_session():
-    root = tk.Tk()
-    root.geometry("500x500")
-    root.title("VeriOrigin Supply Chain Validation")
-    tk.Label(root, text="Welcome to VeriOrigin", font=("Arial", 18)).pack(padx=20, pady=20)
- 
-    def continue_program():
-        global file_path
-        file_path = filedialog.askopenfilename(initialdir=PROJECT / "corpus", title="Select Session to Analyze",
-                                               filetypes=[("JSON Lines", ".jsonl")])
-        root.destroy()
- 
-    def close_program():
-        root.destroy()
-        sys.exit()
- 
-    tk.Button(root, text="Analyze Session", width=50, height=5, command=continue_program).pack(padx=1, pady=10)
-    tk.Button(root, text="Close Program", width=50, height=5, command=close_program).pack(padx=1, pady=10)
-    root.mainloop()
  
  
 def print_trace(events):
@@ -100,7 +82,7 @@ def print_split_findings(reports):
  
  
 def main():
-    choose_session()
+    file_path = choose_session()
     if not file_path:
         sys.exit("No session selected.")
     paths = with_companions([file_path])
