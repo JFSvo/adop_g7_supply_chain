@@ -9,6 +9,8 @@ LOGO_PATH = Path(__file__).resolve().parent / "VeriOrigin_logo.png"
 
 class stackedExample(QWidget):
 
+    file_selected = Signal(str)
+
     def __init__(self):
         super(stackedExample, self).__init__()
         self.selected_file = None
@@ -17,6 +19,8 @@ class stackedExample(QWidget):
         self.stack1 = QWidget()
         self.stack2 = QWidget()
         self.stack3 = QWidget()
+
+        self.page_results = QWidget()
         
         self.stack1UI()
         self.stack2UI()
@@ -57,15 +61,14 @@ class stackedExample(QWidget):
         
     def stack2UI(self):
         layout = QFormLayout()
-        sex = QHBoxLayout()
-        sex.addWidget(QRadioButton("Male"))
-        sex.addWidget(QRadioButton("Female"))
         back_button = QPushButton("Back")
         back_button.clicked.connect(lambda: self.set_current_index(0))
         layout.addRow(back_button)
-        layout.addRow(QLabel("Sex"),sex)
-        layout.addRow("Date of Birth",QLineEdit())
-
+        self.results_view = QTextEdit()
+        self.results_view.setReadOnly(True)
+        layout.addRow(QLabel("Results"))
+        layout.addRow(self.results_view)
+        self.page_results.setLayout(layout)
         self.stack2.setLayout(layout)
         
     def set_current_index(self,i):
@@ -79,8 +82,12 @@ class stackedExample(QWidget):
             "JSON Lines (*.jsonl)",
         )
         if path:
-            self.selected_file = path
+            self.file_selected.emit(path)
             self.Stack.setCurrentIndex(1)
+
+    def show_results(self, text: str):
+        self.results_view.setPlainText(text)
+        self.Stack.setCurrentIndex(1)
 
 def choose_session():
     app = QApplication.instance() or QApplication(sys.argv)
