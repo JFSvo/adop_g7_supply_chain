@@ -2,15 +2,20 @@ import sys
 from pathlib import Path
  
 from provenance_analysis import analyze_events, load_events, load_registry, with_companions
-
+ 
 from PySide6.QtWidgets import QApplication
 from user_interface import VeriOrigin_UI
-
-
+ 
+ 
  
 PROJECT = Path(__file__).resolve().parent.parent
 file_path = None
 EARLY_SIGNAL_RULES = {"FETCH_TO_MEMORY", "DEPENDENCY_WRITE_ATTEMPT", "MEMORY_APPROVAL_CLAIM"}
+RECOMMENDATION_LABELS = {
+    "escalate_for_review": "ESCALATE FOR REVIEW (at least one high-severity finding)",
+    "review": "REVIEW (medium-severity findings only)",
+    "no_review_flags": "PROCEED (no review flags)",
+}
  
 def on_file_selected(window, path):
     paths = with_companions([path])
@@ -22,7 +27,7 @@ def on_file_selected(window, path):
         return
     window.set_text_sections(print_trace(events))
     window.set_text_sections(print_split_findings(reports))
-
+ 
 def print_trace(events):
     findings = {"Trace": []}
     lines = findings["Trace"]
@@ -42,11 +47,16 @@ def print_split_findings(reports):
     # A finding has a "package" key only when it is tied to a specific dependency.
     findings = {"Dependency Findings": [], "Early Signals": [], "Boundary Findings": []}
     for report in reports:
-        # lines.append(f"Session: {report['session_id']} | Events: {report['event_count']} | Recommendation: {report['recommendation']}")
         dependency_findings = [f for f in report["findings"] if "package" in f]
         early_signals = [f for f in report["findings"] if "package" not in f and f["rule_id"] in EARLY_SIGNAL_RULES]
         boundary_findings = [f for f in report["findings"] if "package" not in f and f["rule_id"] not in EARLY_SIGNAL_RULES]
         lines = findings["Dependency Findings"]
+        # Decision summary first: this is what the supply chain lead reads before the detail.
+        counts = {level: sum(f["severity"] == level for f in report["findings"]) for level in ("high", "medium", "info")}
+        lines.append(f"RECOMMENDATION: {RECOMMENDATION_LABELS.get(report['recommendation'], report['recommendation'])}")
+        lines.append(f"Session: {report['session_id']} | Events: {report['event_count']} | "
+                     f"Findings: {counts['high']} high, {counts['medium']} medium, {counts['info']} info")
+        lines.append("")
         lines.append("Dependency Findings")
         lines.append("------------------------------------")
         if not dependency_findings:
@@ -92,7 +102,7 @@ def print_split_findings(reports):
             lines.append(f"    Evidence sequences: {finding['evidence_seq']}")
             if finding.get("path"):
                 lines.append(f"    Resource: {finding['path']}")
-
+ 
     return findings
  
  
