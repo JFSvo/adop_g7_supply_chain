@@ -4,7 +4,7 @@ from pathlib import Path
 from provenance_analysis import analyze_events, load_events, load_registry, with_companions
 
 from PySide6.QtWidgets import QApplication
-from user_interface import stackedExample
+from user_interface import VeriOrigin_UI
 
 
  
@@ -98,7 +98,7 @@ def print_split_findings(reports):
  
 def main():
     app = QApplication(sys.argv)
-    window = stackedExample()
+    window = VeriOrigin_UI()
     window.file_selected.connect(lambda path: on_file_selected(window, path))
     window.show()
     sys.exit(app.exec())

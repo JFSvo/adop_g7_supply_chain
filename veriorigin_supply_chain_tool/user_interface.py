@@ -7,13 +7,16 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parent.parent
 LOGO_PATH = Path(__file__).resolve().parent / "VeriOrigin_logo.png"
 
-class stackedExample(QWidget):
+SCREEN_DIMENSIONS = [(300, 50, 10,10), (300, 50, 10, 600)]
+
+class VeriOrigin_UI(QWidget):
 
     file_selected = Signal(str)
 
     def __init__(self):
-        super(stackedExample, self).__init__()
+        super(VeriOrigin_UI, self).__init__()
         self.selected_file = None
+        self.stored_text = dict()
 
         self.Stack = QStackedWidget()
         self.stack1 = QWidget()
@@ -32,7 +35,7 @@ class stackedExample(QWidget):
         hbox.addWidget(self.Stack)
 
         self.setLayout(hbox)
-        self.setGeometry(300, 50, 10,10)
+        self.setGeometry(*SCREEN_DIMENSIONS[0])
         self.setWindowTitle('VeriOrigin Analyzer')
         self.show()
         
@@ -49,7 +52,7 @@ class stackedExample(QWidget):
         layout.addSpacing(20)
 
         file_dialog_button = QPushButton("Analyze Session")
-        file_dialog_button.clicked.connect(self.choose_file)
+        file_dialog_button.clicked.connect(self.choose_log)
         layout.addWidget(file_dialog_button, alignment=Qt.AlignHCenter)
 
         quit_button = QPushButton("Quit")
@@ -70,6 +73,9 @@ class stackedExample(QWidget):
             self.tabs.addTab(view, name)
             self.tab_views[name] = view
         layout.addWidget(self.tabs)
+        log_button = QPushButton("Export Analysis")
+        log_button.clicked.connect(lambda: self.export_analysis())
+        layout.addRow(log_button)
         back_button = QPushButton("Back")
         back_button.clicked.connect(lambda: self.set_current_index(0))
         layout.addRow(back_button)
@@ -80,9 +86,10 @@ class stackedExample(QWidget):
         self.stack2.setLayout(layout)
         
     def set_current_index(self,i):
+        self.setGeometry(*SCREEN_DIMENSIONS[i])
         self.Stack.setCurrentIndex(i)
 
-    def choose_file(self):
+    def choose_log(self):
         path, _ = QFileDialog.getOpenFileName(
             self,
             "Select Session to Analyze",
@@ -91,9 +98,27 @@ class stackedExample(QWidget):
         )
         if path:
             self.file_selected.emit(path)
-            self.Stack.setCurrentIndex(1)
+            self.set_current_index(1)
+
+    def export_analysis(self):
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Select Output File",
+            "",
+            "Log file (*.log)",
+        )
+        if path:
+            if not path.endswith(".log"):
+                path += ".log"
+            log_text = "\n\n".join(
+                "\n".join(lines) for name, lines in self.stored_text.items()
+            )
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(log_text)
+            self.set_current_index(1)
 
     def set_text_sections(self, sections: dict[str, str]):
+        self.stored_text.update(sections)
         for name, lines in sections.items():
             self.tab_views[name].setPlainText("\n".join(lines))
         self.Stack.setCurrentIndex(1)
