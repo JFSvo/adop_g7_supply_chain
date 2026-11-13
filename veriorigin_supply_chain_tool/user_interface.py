@@ -61,13 +61,21 @@ class stackedExample(QWidget):
         
     def stack2UI(self):
         layout = QFormLayout()
+        self.tabs = QTabWidget()
+        self.tab_views = {}
+        for name in ("Trace", "Dependency Findings", "Early Signals", "Boundary Findings"):
+            view = QTextEdit()
+            view.setReadOnly(True)
+            view.setFontFamily("monospace")
+            self.tabs.addTab(view, name)
+            self.tab_views[name] = view
+        layout.addWidget(self.tabs)
         back_button = QPushButton("Back")
         back_button.clicked.connect(lambda: self.set_current_index(0))
         layout.addRow(back_button)
-        self.results_view = QTextEdit()
-        self.results_view.setReadOnly(True)
-        layout.addRow(QLabel("Results"))
-        layout.addRow(self.results_view)
+        quit_button = QPushButton("Quit")
+        quit_button.clicked.connect(self.close)
+        layout.addWidget(quit_button)
         self.page_results.setLayout(layout)
         self.stack2.setLayout(layout)
         
@@ -85,8 +93,9 @@ class stackedExample(QWidget):
             self.file_selected.emit(path)
             self.Stack.setCurrentIndex(1)
 
-    def show_results(self, text: str):
-        self.results_view.setPlainText(text)
+    def set_text_sections(self, sections: dict[str, str]):
+        for name, lines in sections.items():
+            self.tab_views[name].setPlainText("\n".join(lines))
         self.Stack.setCurrentIndex(1)
 
 def choose_session():

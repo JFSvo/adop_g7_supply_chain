@@ -18,32 +18,35 @@ def on_file_selected(window, path):
         events = load_events(paths)
         reports = analyze_events(events, load_registry())
     except (OSError, ValueError) as exc:
-        window.show_results(f"Dependency provenance analysis failed: {exc}")
+        print(f"Dependency provenance analysis failed: {exc}")
         return
-    window.show_results(print_trace(events) + print_split_findings(reports))
+    window.set_text_sections(print_trace(events))
+    window.set_text_sections(print_split_findings(reports))
 
 def print_trace(events):
-    lines = ["MCP Server Call Sequence Trace"]
+    findings = {"Trace": []}
+    lines = findings["Trace"]
+    lines.append("MCP Server Call Sequence Trace")
     lines.append("------------------------------------")
     for event in events:
-        lines.append(event["server"].upper() + event["tool_name"])
+        lines.append(event["server"].upper() + " " + event["tool_name"])
         lines.append(f"  Task: {event['task_id']}")
         lines.append(f"  Sequence: {event['seq']}")
         lines.append(f"  Resource: {event.get('target_resource')}")
         lines.append(f"  Status: {event['result_status']}")
     
-    return "\n".join(lines)
+    return findings
  
  
 def print_split_findings(reports):
     # A finding has a "package" key only when it is tied to a specific dependency.
-    lines = []
+    findings = {"Dependency Findings": [], "Early Signals": [], "Boundary Findings": []}
     for report in reports:
-        lines.append(f"Session: {report['session_id']} | Events: {report['event_count']} | Recommendation: {report['recommendation']}")
+        # lines.append(f"Session: {report['session_id']} | Events: {report['event_count']} | Recommendation: {report['recommendation']}")
         dependency_findings = [f for f in report["findings"] if "package" in f]
         early_signals = [f for f in report["findings"] if "package" not in f and f["rule_id"] in EARLY_SIGNAL_RULES]
         boundary_findings = [f for f in report["findings"] if "package" not in f and f["rule_id"] not in EARLY_SIGNAL_RULES]
- 
+        lines = findings["Dependency Findings"]
         lines.append("Dependency Findings")
         lines.append("------------------------------------")
         if not dependency_findings:
@@ -64,6 +67,7 @@ def print_split_findings(reports):
             if finding["similar_vetted_packages"]:
                 lines.append(f"    Similar vetted names requiring review: {finding['similar_vetted_packages']}")
  
+        lines = findings["Early Signals"]
         lines.append("Early Signals (pre-manifest)")
         lines.append("------------------------------------")
         if not early_signals:
@@ -77,6 +81,7 @@ def print_split_findings(reports):
             if finding.get("resource") or finding.get("path"):
                 lines.append(f"    Resource: {finding.get('resource') or finding.get('path')}")
  
+        lines = findings["Boundary Findings"]
         lines.append("Other Agent Boundary Findings")
         lines.append("------------------------------------")
         if not boundary_findings:
@@ -88,7 +93,7 @@ def print_split_findings(reports):
             if finding.get("path"):
                 lines.append(f"    Resource: {finding['path']}")
 
-    return "\n".join(lines)
+    return findings
  
  
 def main():
