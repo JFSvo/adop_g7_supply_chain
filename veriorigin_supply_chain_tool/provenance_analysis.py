@@ -38,13 +38,8 @@ def load_events(paths):
                 raise ValueError(f"{path}:{number}: {exc}") from exc
     return sorted(events, key=lambda event: (event["session_id"], event["seq"]))
  
- 
+ # Function that adds the matching file for a complete session trace, whether clean or poisoned is chosen
 def with_companions(paths):
-    """Add the matching clean/poisoned file for each selected file.
- 
-    ADOP writes one session across two files: the poisoned run continues the
-    clean run's sequence numbers. Analysing one file alone leaves a gap.
-    """
     result = []
     for path in map(Path, paths):
         if path not in result:
@@ -162,8 +157,7 @@ def analyze_events(events, registry=None):
             if tool == "fetch" and successful:
                 state["fetches"].append(event)
  
-        # Early signal (ported from the analyzer's fetch-to-memory check): any memory call that follows a
-        # fetch in the same task. Informational, so it does not change the recommendation on its own.
+        # Early signal check imported from the analyzer's fetch-to-memory check:
         if event["server"] == "memory":
             earlier_fetches = [fetch for fetch in state["all_fetches"] if fetch["task_id"] == event["task_id"]]
             if earlier_fetches:
@@ -172,8 +166,7 @@ def analyze_events(events, registry=None):
                     [*[fetch["seq"] for fetch in earlier_fetches], event["seq"]], resource=event.get("target_resource"),
                     fetched_resources=[fetch.get("target_resource") for fetch in earlier_fetches])
  
-        # Early signal (ported from the analyzer's vetted-registry check): a dependency write that did not
-        # land in package.json, because it failed or targeted another file such as a patch file.
+        # Early signal check which validates a dependency write that did not land in package.json, because it failed or targeted another file such as a patch file:
         if (event["server"] == "filesystem" and tool == "write_file" and "package.json" in resource_path(event).lower()
                 and not (successful and posixpath.basename(resource_path(event)) == "package.json")):
             content = str(arguments.get("content", ""))
