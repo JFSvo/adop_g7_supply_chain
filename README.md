@@ -54,6 +54,8 @@ ADOP writes one session across two files: the clean and poisoned runs. VeriOrigi
 
 Results appear in four tabs: Trace, Dependency Findings (which includes the reccomendation), Early Signals, and Boundary Findings. Export Analysis saves all four as a .log file. Back returns to choosing the session.
 
+### 
+
 ## Live Mode
 
 VeriOrigin was validated on Live mode, which included a total of 10 sessions based on the agent's actions. Live mode was chosen because the static sessions were already scripted. The live runs show how a real agent is capable of behaving, which revealed what stage in the pipeline the attack stopped.
@@ -80,10 +82,10 @@ python -m pytest -q test_provenance_analysis.py
 ## Example Input and Expected Output 
 
 ### MCP Server Call Sequence Trace (Trace Tab)
-![alt text](veriorigin_supply_chain_tool/VeriOrigin_logo.png)
+![alt text](veriorigin_supply_chain_tool/dependency_findings_tab.png)
 
 ### Expected Output Supply Chain Risk Report (Dependency Findings tab)
-![alt text](veriorigin_supply_chain_tool/VeriOrigin_logo.png)
+![alt text](veriorigin_supply_chain_tool/trace_tab.png)
 
 ###
 
