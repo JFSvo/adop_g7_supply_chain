@@ -103,7 +103,25 @@ VeriOrigin's dependency analysis logic is covered by an automated test suite (`t
 evaluation/evaluation.py compares VeriOrigin's findings against a ground truth list, which includes a row for each task across the 10 sessions.
 
 ```bash
-python evaluation/evaluation.py # compute results, write evaluation/results.md
+python evaluation/evaluation.py # compute results and write to the evaluation/results.md output file
 ```
 
 ### Validation Example Output
+
+```bash
+| Criterion | Target | Result |
+| --- | --- | --- |
+| Traceability | ≥ 90% | 2 of 2 dependency additions traced to session, task and source |
+| Suspicious-case detection | ≥ 90% | 11 of 11 (100%) |
+| · injected_content | ≥ 90% | 1 of 1 (100%) |
+| · path_escape | ≥ 90% | 8 of 8 (100%) |
+| · unvetted_dependency | ≥ 90% | 2 of 2 (100%) |
+| False positives (clean tasks) | ≤ 10% | 12 of 26 (46%) |
+| Auditability | 100% | 38 of 38 (100%) |
+| Critical assumption: unlinked additions | 0 | 0 |
+| Data assumption: incomplete sessions | 0 | 0 |
+
+Poisoned tasks flagged although no unsafe action occurred: 2.
+
+Full results written to evaluation\results.md
+```
