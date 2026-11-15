@@ -4,6 +4,8 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, Signal
 from pathlib import Path
 
+# PySide GUI front end configuration for VeriOrigin
+
 PROJECT = Path(__file__).resolve().parent.parent
 LOGO_PATH = Path(__file__).resolve().parent / "VeriOrigin_logo.png"
 

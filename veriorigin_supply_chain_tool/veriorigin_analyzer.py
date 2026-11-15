@@ -6,7 +6,7 @@ from provenance_analysis import analyze_events, load_events, load_registry, with
 from PySide6.QtWidgets import QApplication
 from user_interface import VeriOrigin_UI
  
- 
+# VeriOrigin's primary application file that calls all necessary modules to to perform data pre-processing, analysis, and GUI output
  
 PROJECT = Path(__file__).resolve().parent.parent
 file_path = None
@@ -51,7 +51,7 @@ def print_split_findings(reports):
         early_signals = [f for f in report["findings"] if "package" not in f and f["rule_id"] in EARLY_SIGNAL_RULES]
         boundary_findings = [f for f in report["findings"] if "package" not in f and f["rule_id"] not in EARLY_SIGNAL_RULES]
         lines = findings["Dependency Findings"]
-        # Decision summary first: this is what the supply chain lead reads before the detail.
+        # Decision summary first - this is what the supply chain lead reads before the detail.
         counts = {level: sum(f["severity"] == level for f in report["findings"]) for level in ("high", "medium", "info")}
         lines.append(f"RECOMMENDATION: {RECOMMENDATION_LABELS.get(report['recommendation'], report['recommendation'])}")
         lines.append(f"Session: {report['session_id']} | Events: {report['event_count']} | "

@@ -151,13 +151,13 @@ def analyze_events(events, registry=None):
                        "message": message, "evidence_seq": sorted(set(evidence)), **details}
             state["findings"].append(finding)
             return finding
- 
+        # Record all fetches for provenance tracking
         if event["server"] == "fetch":
             state["all_fetches"].append(event)
             if tool == "fetch" and successful:
                 state["fetches"].append(event)
  
-        # Early signal check imported from the analyzer's fetch-to-memory check:
+        # FETCH_TO_MEMORY (3.0, T2/T4), early signal check imported from the analyzer's fetch-to-memory check:
         if event["server"] == "memory":
             earlier_fetches = [fetch for fetch in state["all_fetches"] if fetch["task_id"] == event["task_id"]]
             if earlier_fetches:
@@ -166,7 +166,7 @@ def analyze_events(events, registry=None):
                     [*[fetch["seq"] for fetch in earlier_fetches], event["seq"]], resource=event.get("target_resource"),
                     fetched_resources=[fetch.get("target_resource") for fetch in earlier_fetches])
  
-        # Early signal check which validates a dependency write that did not land in package.json, because it failed or targeted another file such as a patch file:
+        # DEPENDENCY_WRITE_ATTEMPT (3.0, T3), early signal check which validates a dependency write that did not land in package.json, because it failed or targeted another file such as a patch file:
         if (event["server"] == "filesystem" and tool == "write_file" and "package.json" in resource_path(event).lower()
                 and not (successful and posixpath.basename(resource_path(event)) == "package.json")):
             content = str(arguments.get("content", ""))
@@ -182,19 +182,23 @@ def analyze_events(events, registry=None):
                 add("DEPENDENCY_WRITE_ATTEMPT", "high" if successful else "medium",
                     f"{name} was written toward a manifest but did not land in package.json; it is not in the vetted registry.",
                     [event["seq"]], result_status=event["result_status"], path=resource_path(event), attempted_package=name)
- 
+
+        # FILESYSTEM_PATH_OUTSIDE_SCOPE (6.0, T5), flags absolute or ../ paths outside a directory
         if event["server"] == "filesystem" and arguments.get("path") and requires_scope_review(arguments["path"]):
             add("FILESYSTEM_PATH_OUTSIDE_SCOPE", "high" if successful else "medium",
                 "Filesystem requested an external or absolute path requiring scope review.", [event["seq"]],
                 result_status=event["result_status"], path=arguments["path"])
- 
+
+        # Git checks (6.0, T9) and commit lifecycle tracking (4.0, T6)
         if event["server"] == "git":
+        # GIT_PATH_OUTSIDE_SCOPE (6.0, T9, CVE-2025-68143)
             if tool in ("git_show_worktree", "git_init"):
                 path = str(arguments.get("path") or arguments.get("target_path") or "").replace("\\", "/")
                 if requires_scope_review(path):
                     add("GIT_PATH_OUTSIDE_SCOPE", "high" if successful else "medium",
                         "Git requested an external or absolute path requiring scope review.", [event["seq"]],
                         result_status=event["result_status"], path=path)
+            # GIT_PATHSPEC_FLAGS (6.0, T9, CVE-2025-68144)
             if tool == "git_diff" and any(token.startswith("-") for token in str(arguments.get("pathspec", "")).split()):
                 add("GIT_PATHSPEC_FLAGS", "high" if successful else "medium",
                     "Git pathspec contains command-line flags.", [event["seq"]], result_status=event["result_status"],
@@ -264,6 +268,7 @@ def analyze_events(events, registry=None):
                     state["findings"].remove(earlier)
                 similar = [approved for approved in (registry or {}) if approved != package and similar_package(package, approved)] if status == "unlisted" else []
                 severity = "high" if status in ("unlisted", "version_unlisted") or source_status == "unlisted" else "info" if status == "listed" and source_status == "listed" else "medium"
+                # Registry result (5.0, T3/T8) which includes NOT_VETTED (high) if package or source is unlisted, PROVENANCE_UNKNOWN (medium) if no fetch source is found, DOCUMENTATION_LISTED (info) if both match
                 rule = "DEPENDENCY_NOT_VETTED" if severity == "high" else "DEPENDENCY_DOCUMENTATION_LISTED" if severity == "info" else "DEPENDENCY_PROVENANCE_UNKNOWN"
                 message = f"{package} has listed documentation evidence; artifact provenance remains unverified." if severity == "info" else f"{package} requires dependency provenance review."
                 finding = add(rule, severity, message,
@@ -277,7 +282,8 @@ def analyze_events(events, registry=None):
                 findings.append(finding)
             state["manifests"][path] = dependencies
             state["pending"][path] = findings
- 
+
+        # Info to see if the claimed package is in the registery
         if event["server"] == "memory" and tool == "memory_set" and successful:
             state["memory"].append(event)
             value = str(arguments.get("value", ""))
@@ -291,6 +297,7 @@ def analyze_events(events, registry=None):
                 else:
                     add("MEMORY_APPROVAL_CLAIM", "medium", "Stored approval language is an agent claim requiring independent verification.",
                         [event["seq"], *[fetch["seq"] for fetch in fetches]], resource=event.get("target_resource"))
+            # DEPENDENCY_RECORDED_IN_MEMORY (3.0, T3/T4) package saved to agent memory before manifest change
             if arguments.get("namespace") == "dependencies" and claimed:
                 pattern = re.compile(r"(?<![A-Za-z0-9@/_.-])" + re.escape(claimed) + r"(?![A-Za-z0-9/_.-])")
                 candidates = [fetch for fetch in state["fetches"] if pattern.search(fetch.get("result_summary", ""))]
@@ -309,11 +316,13 @@ def analyze_events(events, registry=None):
                     artifact_provenance="not_verified")
  
         scope_flagged = any(finding["evidence_seq"] == [event["seq"]] and finding["rule_id"].endswith("_OUTSIDE_SCOPE") for finding in state["findings"])
+        # MEMORY_NAMESPACE_OUTSIDE_SCOPE (6.0, T4/T5), memory namespace that escapes the store for example ../data
         if event["server"] == "memory" and requires_scope_review(str(arguments.get("namespace", ""))):
             add("MEMORY_NAMESPACE_OUTSIDE_SCOPE", "high" if successful else "medium",
                 "Memory requested a namespace that resolves outside the memory store.", [event["seq"]],
                 result_status=event["result_status"], path=arguments.get("namespace"))
             scope_flagged = True
+        # SENSITIVE_RESOURCE_ACCESS (6.0, T5), any form of secrets being retrieved 
         if not scope_flagged and any(pattern in str(event.get("target_resource") or "").lower() for pattern in SENSITIVE_PATTERNS):
             add("SENSITIVE_RESOURCE_ACCESS", "medium", "Agent touched a resource whose name suggests credentials or secrets.",
                 [event["seq"]], result_status=event["result_status"], path=event.get("target_resource"))
@@ -322,18 +331,20 @@ def analyze_events(events, registry=None):
     for session_id, state in sorted(sessions.items()):
         findings = state["findings"]
         sequences = state["sequences"]
+        # INCOMPLETE_SESSION (2.0, T7), sequence numbers missing or not starting at 1, to identify calls that may be missing from the log
         incomplete = bool(sequences and (sequences[0] != 1 or any(right != left + 1 for left, right in zip(sequences, sequences[1:]))))
         if incomplete:
             findings.append({"rule_id": "INCOMPLETE_SESSION", "severity": "medium", "task_id": None,
                              "message": "Session sequence is incomplete; missing calls may affect conclusions.", "evidence_seq": []})
         for finding in findings:
             finding["evidence_seq"] = sorted(set(finding["evidence_seq"]))
+        # Recommendation (7.0), escalate if any high finding, review if any medium, otherwise proceed
         recommendation = "escalate_for_review" if any(finding["severity"] == "high" for finding in findings) else "review" if any(finding["severity"] == "medium" for finding in findings) else "no_review_flags"
         reports.append({"session_id": session_id, "event_count": len(sequences),
                         "recommendation": recommendation, "findings": findings})
     return reports
  
- 
+
 def print_reports(reports):
     print("\nDependency Provenance Findings")
     print("------------------------------------")

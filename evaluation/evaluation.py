@@ -6,6 +6,7 @@ from collections import defaultdict
 from pathlib import Path
  
 def find_root():
+    # Find the root repository for the script to operate anywhere in the folder structure
     for folder in Path(__file__).resolve().parents:
         if (folder / "veriorigin_supply_chain_tool" / "provenance_analysis.py").is_file() and (folder / "corpus").is_dir():
             return folder
