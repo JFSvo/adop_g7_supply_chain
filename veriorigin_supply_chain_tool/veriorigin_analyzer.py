@@ -25,8 +25,8 @@ def on_file_selected(window, path):
     except (OSError, ValueError) as exc:
         print(f"Dependency provenance analysis failed: {exc}")
         return
-    window.set_text_sections(print_trace(events))
-    window.set_text_sections(print_split_findings(reports))
+    findings = {**print_trace(events), **print_split_findings(reports)}
+    window.set_text_sections(findings)
  
 def print_trace(events):
     findings = {"Trace": []}

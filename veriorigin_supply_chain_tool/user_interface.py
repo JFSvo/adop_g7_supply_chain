@@ -9,7 +9,8 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parent.parent
 LOGO_PATH = Path(__file__).resolve().parent / "VeriOrigin_logo.png"
 
-SCREEN_DIMENSIONS = [(300, 50, 10,10), (300, 50, 10, 600)]
+INITIAL_DIMENSION = (300, 50, 10, 10)
+SCREEN_DIMENSIONS = [(10, 10), (10, 700)]
 
 class VeriOrigin_UI(QWidget):
 
@@ -21,28 +22,27 @@ class VeriOrigin_UI(QWidget):
         self.stored_text = dict()
 
         self.Stack = QStackedWidget()
-        self.stack1 = QWidget()
-        self.stack2 = QWidget()
-        self.stack3 = QWidget()
+        self.menu_screen = QWidget()
+        self.results_screen = QWidget()
 
         self.page_results = QWidget()
         
-        self.stack1UI()
-        self.stack2UI()
+        self.menu_UI()
+        self.results_UI()
         
-        self.Stack.addWidget (self.stack1)
-        self.Stack.addWidget (self.stack2)
+        self.Stack.addWidget (self.menu_screen)
+        self.Stack.addWidget (self.results_screen)
         
         hbox = QHBoxLayout(self)
         hbox.addWidget(self.Stack)
 
         self.setLayout(hbox)
-        self.setGeometry(*SCREEN_DIMENSIONS[0])
+        self.setGeometry(*INITIAL_DIMENSION)
         self.setWindowTitle('VeriOrigin Analyzer')
         self.show()
         
 
-    def stack1UI(self):
+    def menu_UI(self):
         layout = QVBoxLayout()
 
         logo = QLabel()
@@ -62,9 +62,9 @@ class VeriOrigin_UI(QWidget):
         layout.addWidget(quit_button, alignment=Qt.AlignHCenter)
 
         layout.addStretch()  # pushes everything to the top
-        self.stack1.setLayout(layout)
+        self.menu_screen.setLayout(layout)
         
-    def stack2UI(self):
+    def results_UI(self):
         layout = QFormLayout()
         self.tabs = QTabWidget()
         self.tab_views = {}
@@ -85,10 +85,10 @@ class VeriOrigin_UI(QWidget):
         quit_button.clicked.connect(self.close)
         layout.addWidget(quit_button)
         self.page_results.setLayout(layout)
-        self.stack2.setLayout(layout)
+        self.results_screen.setLayout(layout)
         
     def set_current_index(self,i):
-        self.setGeometry(*SCREEN_DIMENSIONS[i])
+        self.resize(*SCREEN_DIMENSIONS[i])
         self.Stack.setCurrentIndex(i)
 
     def choose_log(self):
@@ -117,7 +117,6 @@ class VeriOrigin_UI(QWidget):
             )
             with open(path, "w", encoding="utf-8") as f:
                 f.write(log_text)
-            self.set_current_index(1)
 
     def set_text_sections(self, sections: dict[str, str]):
         self.stored_text.update(sections)
