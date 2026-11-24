@@ -104,6 +104,17 @@ def path_scope(path):
         return "inside" if REPO_DIR_NAME in parts else "absolute"
     return "inside"
 
+# Fix that verifies if the repository was created outside of the testbed boundary including relative paths
+def git_init_scope(event):
+    created = re.search(r"repository in (.+?)/?\.git/?\s*$", str(event.get("result_summary", "")).strip())
+    target = created.group(1) if created else str(event["arguments"].get("target_path") or event["arguments"].get("path") or "")
+    normalized = posixpath.normpath(target.replace("\\", "/"))
+    if normalized.startswith("/") or re.match(r"^[A-Za-z]:", normalized):
+        return path_scope(normalized)
+    if normalized == ".." or normalized.startswith("../"):
+        return "traversal"
+    return "inside" if normalized.split("/")[0] == REPO_DIR_NAME else "absolute"
+
 def requires_scope_review(path):
     normalized = posixpath.normpath(str(path).replace("\\", "/"))
     return normalized == ".." or normalized.startswith("../") or normalized.startswith("/") or bool(re.match(r"^[A-Za-z]:", normalized))
@@ -212,7 +223,8 @@ def analyze_events(events, registry=None, baseline=None):
         # GIT_PATH_OUTSIDE_SCOPE (6.0, T9, CVE-2025-68143)
             if tool in ("git_show_worktree", "git_init"):
                 path = str(arguments.get("path") or arguments.get("target_path") or "").replace("\\", "/")
-                if requires_scope_review(path):
+                outside = git_init_scope(event) != "inside" if tool == "git_init" else requires_scope_review(path)
+                if outside:
                     add("GIT_PATH_OUTSIDE_SCOPE", "high" if successful else "medium",
                         "Git requested an external or absolute path requiring scope review.", [event["seq"]],
                         result_status=event["result_status"], path=path)
