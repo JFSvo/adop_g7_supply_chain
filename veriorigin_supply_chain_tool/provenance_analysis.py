@@ -93,7 +93,17 @@ def load_registry(path=None):
 def resource_path(event):
     return posixpath.normpath(str(event["arguments"].get("path") or event.get("target_resource") or "").replace("\\", "/"))
  
- 
+REPO_DIR_NAME = "testbed-repo"  # ADOP sandbox root
+# Root cause of false flags - correct path escape misclassification by properly defining traversal vs. inside
+def path_scope(path):
+    normalized = posixpath.normpath(str(path).replace("\\", "/"))
+    if normalized == ".." or normalized.startswith("../"):
+        return "traversal"
+    if normalized.startswith("/") or re.match(r"^[A-Za-z]:", normalized):
+        parts = normalized.split("/")
+        return "inside" if REPO_DIR_NAME in parts else "absolute"
+    return "inside"
+
 def requires_scope_review(path):
     normalized = posixpath.normpath(str(path).replace("\\", "/"))
     return normalized == ".." or normalized.startswith("../") or normalized.startswith("/") or bool(re.match(r"^[A-Za-z]:", normalized))
@@ -188,11 +198,15 @@ def analyze_events(events, registry=None, baseline=None):
                     [event["seq"]], result_status=event["result_status"], path=resource_path(event), attempted_package=name)
 
         # FILESYSTEM_PATH_OUTSIDE_SCOPE (6.0, T5), flags absolute or ../ paths outside a directory
-        if event["server"] == "filesystem" and arguments.get("path") and requires_scope_review(arguments["path"]):
-            add("FILESYSTEM_PATH_OUTSIDE_SCOPE", "high" if successful else "medium",
-                "Filesystem requested an external or absolute path requiring scope review.", [event["seq"]],
+        # v0.5 false positive corrected: an agent guess is no longer classified as a path escape
+        scope = path_scope(arguments["path"]) if event["server"] == "filesystem" and arguments.get("path") else "inside"
+        if scope != "inside":
+            guess = scope == "absolute" and not successful
+            add("FILESYSTEM_PATH_OUTSIDE_SCOPE", "high" if successful else "info" if guess else "medium",
+                "Failed read of an absolute path outside the repository; likely a path guess, not an escape." if guess
+                else "Filesystem requested an external or absolute path requiring scope review.", [event["seq"]],
                 result_status=event["result_status"], path=arguments["path"])
-
+            
         # Git checks (6.0, T9) and commit lifecycle tracking (4.0, T6)
         if event["server"] == "git":
         # GIT_PATH_OUTSIDE_SCOPE (6.0, T9, CVE-2025-68143)
