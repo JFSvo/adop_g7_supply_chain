@@ -59,7 +59,7 @@ SENSITIVE_PATTERNS = (".env", "credentials", "password", "secret", "token", "id_
 # Loading the repository's manifest as the baseline to avoid truncation
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 def load_baseline_manifest(path=None):
-    path = Path(path) if path is not None else PROJECT_ROOT / "testbed-repo" / "package.json"
+    path = Path(path) if path is not None else Path(__file__).resolve().parent / "vetted_registry.json" # Establish a path to the new local vetted registry file
     return parse_manifest(path.read_text(encoding="utf-8"))
  
 def load_registry(path=None):
@@ -123,7 +123,8 @@ def check_registry(package, version, sources, registry):
     approval = registry[package]
     versions = approval if isinstance(approval, list) else approval.get("versions", [])
     approved_sources = [] if isinstance(approval, list) else approval.get("sources", [])
-    status = "listed" if not versions or version in versions else "version_unlisted"
+    requested = str(version).lstrip("^~=v ")
+    status = "listed" if not versions or requested in {str(v).lstrip("^~=v ") for v in versions} else "version_unlisted"
     urls = {source["url"] for source in sources}
     source_status = "unknown" if not approved_sources or not urls else "listed" if urls.issubset(set(approved_sources)) else "unlisted"
     return status, source_status
