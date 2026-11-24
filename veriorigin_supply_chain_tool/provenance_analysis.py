@@ -56,7 +56,11 @@ def with_companions(paths):
  
  
 SENSITIVE_PATTERNS = (".env", "credentials", "password", "secret", "token", "id_rsa")
- 
+# Loading the repository's manifest as the baseline to avoid truncation
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+def load_baseline_manifest(path=None):
+    path = Path(path) if path is not None else PROJECT_ROOT / "testbed-repo" / "package.json"
+    return parse_manifest(path.read_text(encoding="utf-8"))
  
 def load_registry(path=None):
     path = Path(path) if path is not None else Path(__file__).resolve().parent.parent / "data/mock-web/vetted-source-registry.md"
@@ -134,8 +138,7 @@ def similar_package(package, approved):
     shorter, longer = sorted((package, approved), key=len)
     return any(longer[:index] + longer[index + 1:] == shorter for index in range(len(longer)))
  
- 
-def analyze_events(events, registry=None):
+def analyze_events(events, registry=None, baseline=None):
     sessions = {}
     for event in sorted(events, key=lambda item: (item["session_id"], item["seq"])):
         state = sessions.setdefault(event["session_id"], {
@@ -242,7 +245,7 @@ def analyze_events(events, registry=None):
                 state["manifests"].pop(path, None)
                 state["pending"][path] = []
                 continue
-            previous = state["manifests"].get(path)
+            previous = state["manifests"].get(path, baseline)
             for previous_finding in pending:
                 identity = (previous_finding["section"], previous_finding["package"])
                 if dependencies.get(identity) != previous_finding["requested_version"] and previous_finding["state"] == "written":
@@ -372,13 +375,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="+", type=Path)
     parser.add_argument("--registry", type=Path)
+    parser.add_argument("--baseline", type=Path, help="package.json to use as the starting manifest")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--no-companion", action="store_true",
                         help="analyse only the files given, without adding the matching clean/poisoned file")
     args = parser.parse_args()
     try:
         paths = args.paths if args.no_companion else with_companions(args.paths)
-        reports = analyze_events(load_events(paths), load_registry(args.registry))
+        reports = analyze_events(load_events(paths), load_registry(args.registry), load_baseline_manifest(args.baseline))
         if args.output:
             args.output.write_text(json.dumps(reports, indent=2) + "\n", encoding="utf-8")
         print_reports(reports)

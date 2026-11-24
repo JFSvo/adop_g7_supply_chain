@@ -15,7 +15,7 @@ def find_root():
  
 ROOT = find_root()
 sys.path.insert(0, str(ROOT / "veriorigin_supply_chain_tool"))
-from provenance_analysis import analyze_events, load_events, load_registry  # noqa: E402  # type: ignore[import-not-found]
+from provenance_analysis import analyze_events, load_baseline_manifest, load_events, load_registry  # noqa: E402  # type: ignore[import-not-found]
  
 KEY = Path(__file__).resolve().parent / "ground_truth.csv"  # kept next to this script
 RESULTS = Path(__file__).resolve().parent / "results.md"
@@ -97,7 +97,7 @@ def evaluate():
  
     for name, paths in sessions():
         events = load_events(paths)
-        reports = analyze_events(events, load_registry())
+        reports = analyze_events(events, load_registry(), load_baseline_manifest())
         if not reports:
             print(f"Skipping {name}: its files contain no events.")
             continue

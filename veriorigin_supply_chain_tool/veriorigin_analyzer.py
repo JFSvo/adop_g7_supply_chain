@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
  
-from provenance_analysis import analyze_events, load_events, load_registry, with_companions
+from provenance_analysis import analyze_events, load_events, load_registry, with_companions, load_baseline_manifest
  
 from PySide6.QtWidgets import QApplication
 from user_interface import VeriOrigin_UI
@@ -21,7 +21,7 @@ def on_file_selected(window, path):
     paths = with_companions([path])
     try:
         events = load_events(paths)
-        reports = analyze_events(events, load_registry())
+        reports = analyze_events(events, load_registry(), load_baseline_manifest())
     except (OSError, ValueError) as exc:
         print(f"Dependency provenance analysis failed: {exc}")
         return
