@@ -59,11 +59,11 @@ SENSITIVE_PATTERNS = (".env", "credentials", "password", "secret", "token", "id_
 # Loading the repository's manifest as the baseline to avoid truncation
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 def load_baseline_manifest(path=None):
-    path = Path(path) if path is not None else Path(__file__).resolve().parent / "vetted_registry.json" # Establish a path to the new local vetted registry file
+    path = Path(path) if path is not None else PROJECT_ROOT / "testbed-repo" / "package.json" # Establish a path to the new local vetted registry file
     return parse_manifest(path.read_text(encoding="utf-8"))
  
 def load_registry(path=None):
-    path = Path(path) if path is not None else Path(__file__).resolve().parent.parent / "data/mock-web/vetted-source-registry.md"
+    path = Path(path) if path is not None else Path(__file__).resolve().parent / "vetted_registry.json"
     content = path.read_text(encoding="utf-8")
     if path.suffix.lower() == ".md":
         entries = re.findall(r"^\s*-\s+([^\s]+)\s+\(([^)]+)\)\s*$", content, re.MULTILINE)
