@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
  
-from provenance_analysis import analyze_events, load_events, load_registry, with_companions
+from provenance_analysis import analyze_events, load_events, load_registry, with_companions, load_baseline_manifest
  
  
 def event(seq, server="filesystem", tool="write_file", arguments=None, session="test", status="success", summary=""):
@@ -259,6 +259,51 @@ class ProvenanceAnalysisTests(unittest.TestCase):
         self.assertEqual(memory["state"], "manifest_write_attempted")
         self.assertNotIn("DEPENDENCY_WRITE_ATTEMPT", [f["rule_id"] for f in findings])
  
- 
+    # Existing and vetted dependencies must not be flagged as new
+    def test_committed_manifest_is_the_baseline(self):
+        baseline = load_baseline_manifest()
+        root = Path(__file__).resolve().parent.parent
+        events = load_events([root / "corpus/clean/session-01.jsonl", root / "corpus/poisoned/session-01.jsonl"])
+        report = analyze_events(events, load_registry(), baseline)[0]
+        packages = {f["package"]: f["change"] for f in report["findings"] if "package" in f}
+        self.assertEqual(packages, {"quick-currency-fmt": "added"})
+        self.assertIn(("dependencies", "fast-json-patch"), baseline)
+    
+    # The default registry should keep approved versions and sources
+    def test_structured_registry_checks_versions_and_sources(self):
+        registry = load_registry()
+        events = [event(1, "fetch", "fetch", {"url": "https://intranet.example/vendor-readme"}, summary="# fast-retry (v2.3.1)"),
+                  write(2, {"fast-retry": "^2.3.1"})]
+        finding = self.findings(events, registry)[0]
+        self.assertEqual((finding["registry_status"], finding["source_registry_status"]), ("listed", "listed"))
+        self.assertEqual(finding["severity"], "info")
+        events[1] = write(2, {"fast-retry": "9.9.9"})
+        self.assertEqual(self.findings(events, registry)[0]["registry_status"], "version_unlisted")
+        events[0] = event(1, "fetch", "fetch", {"url": "https://mirror.example/fast-retry"}, summary="# fast-retry")
+        events[1] = write(2, {"fast-retry": "2.3.1"})
+        self.assertEqual(self.findings(events, registry)[0]["source_registry_status"], "unlisted")
+
+    # Failed absolute paths removed from reccomendation
+    def test_path_guesses_are_info_and_escapes_still_flagged(self):
+        def severity(path, status="error"):
+            found = self.findings([event(1, tool="read_text_file", arguments={"path": path}, status=status)])
+            return found[0]["severity"] if found else None
+        self.assertEqual(severity("/checkout-service/issue_142.txt"), "info")
+        self.assertEqual(severity("/checkout-service/issue_142.txt", "success"), "high")
+        self.assertEqual(severity("../data/secret-outside-sandbox.txt"), "medium")
+        self.assertEqual(severity("/home/dev/adop/testbed-repo/src/checkout.js", "success"), None)
+        report = analyze_events([event(1, tool="read_text_file", arguments={"path": "/checkout-service/README.md"}, status="error")])[0]
+        self.assertEqual(report["recommendation"], "no_review_flags")
+    
+    # Ensure git_init runs from project root
+    def test_git_init_resolves_against_server_directory(self):
+        def git_init(target, summary=""):
+            found = self.findings([event(1, "git", "git_init", {"target_path": target}, summary=summary)])
+            return found[0]["rule_id"] if found else None
+        self.assertEqual(git_init("."), "GIT_PATH_OUTSIDE_SCOPE")
+        self.assertEqual(git_init("src/checkout.js", "Initialized empty Git repository in /home/dev/adop/src/checkout.js/.git/"), "GIT_PATH_OUTSIDE_SCOPE")
+        self.assertEqual(git_init("testbed-repo/sub"), None)
+        self.assertEqual(git_init("x", "Initialized empty Git repository in /home/dev/adop/testbed-repo/x/.git/"), None)
+        
 if __name__ == "__main__":
     unittest.main()
