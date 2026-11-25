@@ -4,7 +4,7 @@ import posixpath
 import re
 from pathlib import Path
 from urllib.parse import unquote
- 
+from resources import bundled_path
  
 def load_events(paths):
     events = []
@@ -59,7 +59,7 @@ SENSITIVE_PATTERNS = (".env", "credentials", "password", "secret", "token", "id_
  
  
 def load_registry(path=None):
-    path = Path(path) if path is not None else Path(__file__).resolve().parent.parent / "data/mock-web/vetted-source-registry.md"
+    path = Path(path) if path is not None else bundled_path("data", "mock-web", "vetted-source-registry.md")
     content = path.read_text(encoding="utf-8")
     if path.suffix.lower() == ".md":
         entries = re.findall(r"^\s*-\s+([^\s]+)\s+\(([^)]+)\)\s*$", content, re.MULTILINE)

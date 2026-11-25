@@ -13,6 +13,7 @@ veriorigin_supply_chain_tool/
   veriorigin_analyzer.py        # Entry point: session picker, readable trace, findings output
   user_interface.py             # Qt (PySide6) window with session picker, results, and export
   provenance_analysis.py        # All detection rules: dependency state, registry/source checks, scope checks
+  resources.py                  # Helper methods used in the provenance analysis and UI
   test_provenance_analysis.py   # Unit testing framework
 
 # Validation folder
@@ -29,12 +30,16 @@ This document specifically covers the steps required to run VeriOrigin, assuming
 
 ## Requirements
 
-VeriOrigin uses only the Python standard library. No extra pip installs
-are needed beyond your existing testbed environment.
-
 - Python 3.11+ (already required by the testbed)
-- PySide6, for the GUI: `pip install PySide6`
-- pytest, to run the unit tests: `pip install pytest`
+
+The following pip packages are also required:
+
+- PySide6, for the GUI:
+- PyInstaller, to build a single packaged executable
+- pytest, to run the unit tests
+
+These may be installed by running `pip install -r requirements.txt`.
+
 
 ## Running VeriOrigin
 
@@ -53,6 +58,10 @@ A file dialog opens in the corpus/ folder. Select any clean.jsonl or poisoned.js
 ADOP writes one session across two files: the clean and poisoned runs. VeriOrigin loads the matching companion file automatically, so the session is analysed as one complete timeline. The first line of the output lists the files that were analysed.
 
 Results appear in four tabs: Trace, Dependency Findings (which includes the reccomendation), Early Signals, and Boundary Findings. Export Analysis saves all four as a .log file. Back returns to choosing the session.
+
+## Building a Standalone Executable ##
+
+For less technical users who may prefer running VeriOrigin as its own executable rather than from the command line, a binary can be generated using PyInstaller. After installing the PyInstaller pip package as specified in the Requirements section, running the command `pyinstaller veriorigin_analyzer.spec` will create a new executable in the `dist/` folder.
 
 ### 
 

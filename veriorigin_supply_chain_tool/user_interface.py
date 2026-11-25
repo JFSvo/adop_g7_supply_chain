@@ -3,11 +3,10 @@ from PySide6.QtWidgets import *
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, Signal
 from pathlib import Path
+from resources import bundled_path, project_root
 
-# PySide GUI front end configuration for VeriOrigin
-
-PROJECT = Path(__file__).resolve().parent.parent
-LOGO_PATH = Path(__file__).resolve().parent / "VeriOrigin_logo.png"
+PROJECT = project_root()
+LOGO_PATH = bundled_path("veriorigin_supply_chain_tool", "VeriOrigin_logo.png")
 
 INITIAL_DIMENSION = (300, 50, 10, 10)
 SCREEN_DIMENSIONS = [(10, 10), (10, 700)]
