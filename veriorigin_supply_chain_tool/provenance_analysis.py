@@ -135,7 +135,21 @@ def parse_manifest(content):
                 raise ValueError(f"invalid version for {package}")
             dependencies[(section, package)] = version
     return dependencies
- 
+
+# New function used to match memory values against unvetted names in any namespace
+def memory_dependency_claims(arguments):
+    namespace, key, value = arguments.get("namespace"), str(arguments.get("key", "")), str(arguments.get("value", ""))
+    if namespace == "dependencies":
+        return [(key.removesuffix("-version"), value)] if key else []
+    claims = []
+    if key.endswith("-version") and re.match(r"^[\^~=v]?\d", value.strip()):
+        claims.append((key.removesuffix("-version"), value.strip()))
+    try:
+        claims += [(package, version) for (_, package), version in parse_manifest(value).items()]
+    except (ValueError, TypeError):
+        pass
+    claims += re.findall(r"(?<![\w/.@-])((?:@[\w.-]+/)?[a-z0-9][\w.-]*)@([\^~]?\d[\w.-]*)", value)
+    return list(dict.fromkeys(claims))
  
 def check_registry(package, version, sources, registry):
     if registry is None:
@@ -338,7 +352,9 @@ def analyze_events(events, registry=None, baseline=None):
                     add("MEMORY_APPROVAL_CLAIM", "medium", "Stored approval language is an agent claim requiring independent verification.",
                         [event["seq"], *[fetch["seq"] for fetch in fetches]], resource=event.get("target_resource"))
             # DEPENDENCY_RECORDED_IN_MEMORY (3.0, T3/T4) package saved to agent memory before manifest change
-            if arguments.get("namespace") == "dependencies" and claimed:
+            for claimed, value in memory_dependency_claims(arguments):
+                if not claimed or (arguments.get("namespace") != "dependencies" and (registry is None or claimed in registry)):
+                    continue
                 pattern = re.compile(r"(?<![A-Za-z0-9@/_.-])" + re.escape(claimed) + r"(?![A-Za-z0-9/_.-])")
                 candidates = [fetch for fetch in state["fetches"] if pattern.search(fetch.get("result_summary", ""))]
                 sources = [{"url": fetch["arguments"].get("url"), "seq": fetch["seq"], "task_id": fetch["task_id"], "timestamp": fetch.get("timestamp")} for fetch in candidates]
