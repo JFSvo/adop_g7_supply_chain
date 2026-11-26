@@ -3,13 +3,15 @@ from PySide6.QtWidgets import *
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, Signal
 from pathlib import Path
+
+from trace_view import TraceView
 from resources import bundled_path, project_root
 
 PROJECT = project_root()
 LOGO_PATH = bundled_path("veriorigin_supply_chain_tool", "VeriOrigin_logo.png")
 
 INITIAL_DIMENSION = (300, 50, 10, 10)
-SCREEN_DIMENSIONS = [(10, 10), (10, 700)]
+SCREEN_DIMENSIONS = [(10, 10), (1000, 700)]
 
 class VeriOrigin_UI(QWidget):
 
@@ -67,12 +69,17 @@ class VeriOrigin_UI(QWidget):
         layout = QFormLayout()
         self.tabs = QTabWidget()
         self.tab_views = {}
-        for name in ("Trace", "Dependency Findings", "Early Signals", "Boundary Findings"):
+
+        self.trace_view = TraceView()
+        self.tabs.addTab(self.trace_view, "Trace")
+
+        for name in ("Dependency Findings", "Early Signals", "Boundary Findings"):
             view = QTextEdit()
             view.setReadOnly(True)
             view.setFontFamily("monospace")
             self.tabs.addTab(view, name)
             self.tab_views[name] = view
+
         layout.addWidget(self.tabs)
         log_button = QPushButton("Export Analysis")
         log_button.clicked.connect(lambda: self.export_analysis())
@@ -122,6 +129,9 @@ class VeriOrigin_UI(QWidget):
         for name, lines in sections.items():
             self.tab_views[name].setPlainText("\n".join(lines))
         self.Stack.setCurrentIndex(1)
+    
+    def show_trace(self, events):
+        self.trace_view.show_trace(events)
 
 def choose_session():
     app = QApplication.instance() or QApplication(sys.argv)
