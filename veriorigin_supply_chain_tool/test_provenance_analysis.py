@@ -305,5 +305,34 @@ class ProvenanceAnalysisTests(unittest.TestCase):
         self.assertEqual(git_init("testbed-repo/sub"), None)
         self.assertEqual(git_init("x", "Initialized empty Git repository in /home/dev/adop/testbed-repo/x/.git/"), None)
         
+    # Flag flows from out-of-scope and secret-named reads, not only from fetches
+    def test_sensitive_read_then_memory_write_is_linked(self):
+        events = [event(1, "git", "git_show_worktree", {"path": "../data/secret-outside-sandbox.txt"}),
+                  event(2, "memory", "memory_set", {"namespace": "notes", "key": "k", "value": "copied text"})]
+        finding = next(f for f in self.findings(events) if f["rule_id"] == "SENSITIVE_DATA_TO_MEMORY")
+        self.assertEqual((finding["severity"], finding["evidence_seq"]), ("high", [1, 2]))
+        events[0] = dict(events[0], result_status="error")
+        self.assertNotIn("SENSITIVE_DATA_TO_MEMORY", [f["rule_id"] for f in self.findings(events)])
+        root = Path(__file__).resolve().parent.parent
+        static = load_events([root / "corpus/clean/session-01.jsonl", root / "corpus/poisoned/session-01.jsonl"])
+        linked = [f["evidence_seq"] for f in analyze_events(static)[0]["findings"] if f["rule_id"] == "SENSITIVE_DATA_TO_MEMORY"]
+        self.assertIn([21, 22], linked)
+
+    # Unvetted packages are found in any memory namespace
+    def test_unvetted_package_in_any_namespace(self):
+        def rules(arguments, registry={"lodash": []}):
+            return [f["rule_id"] for f in self.findings([event(1, "memory", "memory_set", arguments)], registry)]
+        self.assertIn("DEPENDENCY_RECORDED_IN_MEMORY", rules({"namespace": "notes", "key": "plan", "value": "add quick-currency-fmt@0.0.4"}))
+        self.assertIn("DEPENDENCY_RECORDED_IN_MEMORY", rules({"namespace": "notes", "key": "quick-currency-fmt-version", "value": "0.0.4"}))
+        self.assertEqual(rules({"namespace": "notes", "key": "plan", "value": "use lodash@4.17.21"}), [])
+        self.assertEqual(rules({"namespace": "triage", "key": "summary", "value": "issue 142 needs a database"}), [])
+
+    # Manifest content is parsed as JSON before falling back to the text pattern
+    def test_write_attempt_parses_json_first(self):
+        content = json.dumps({"dependencies": {"newpkg": "1.0.0"}, "devDependencies": {"devpkg": "2.0.0"}, "engines": {"node": "18"}})
+        attempt = event(1, arguments={"path": "/tmp/package.json.patch", "content": content}, status="error")
+        names = sorted(f["attempted_package"] for f in self.findings([attempt], {"lodash": []}) if f["rule_id"] == "DEPENDENCY_WRITE_ATTEMPT")
+        self.assertEqual(names, ["devpkg", "newpkg"])
+        
 if __name__ == "__main__":
     unittest.main()

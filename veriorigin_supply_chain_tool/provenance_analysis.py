@@ -136,7 +136,17 @@ def parse_manifest(content):
             dependencies[(section, package)] = version
     return dependencies
 
-# New function used to match memory values against unvetted names in any namespace
+# Function to parse JSON first, then use RegEx as a backup
+def attempted_dependency_names(content):
+    try:
+        return [package for (_, package) in parse_manifest(content)]
+    except (ValueError, TypeError):
+        pass
+    if '"dependencies"' not in content:
+        return []
+    return re.findall(r'"([^"]+)"\s*:\s*"[\^~]?\d', content.split('"dependencies"')[-1])
+
+# Function used to match memory values against unvetted names in any namespace
 def memory_dependency_claims(arguments):
     namespace, key, value = arguments.get("namespace"), str(arguments.get("key", "")), str(arguments.get("value", ""))
     if namespace == "dependencies":
@@ -210,7 +220,7 @@ def analyze_events(events, registry=None, baseline=None):
         if (event["server"] == "filesystem" and tool == "write_file" and "package.json" in resource_path(event).lower()
                 and not (successful and posixpath.basename(resource_path(event)) == "package.json")):
             content = str(arguments.get("content", ""))
-            names = re.findall(r'"([^"]+)"\s*:\s*"[\^~]?\d', content.split('"dependencies"')[-1]) if '"dependencies"' in content else []
+            names = attempted_dependency_names(content) 
             for name in names:
                 if registry is None or name in registry:
                     continue  # without a registry there is no basis to call the name unvetted
