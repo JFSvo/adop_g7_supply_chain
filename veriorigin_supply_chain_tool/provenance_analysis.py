@@ -56,6 +56,7 @@ def with_companions(paths):
  
  
 SENSITIVE_PATTERNS = (".env", "credentials", "password", "secret", "token", "id_rsa")
+READ_TOOLS = ("read_text_file", "read_file", "git_show_worktree", "git_show", "git_diff", "memory_get") # Tool calls related to read actions that can be flagged
 # Loading the repository's manifest as the baseline to avoid truncation
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 def load_baseline_manifest(path=None):
@@ -164,7 +165,7 @@ def analyze_events(events, registry=None, baseline=None):
     sessions = {}
     for event in sorted(events, key=lambda item: (item["session_id"], item["seq"])):
         state = sessions.setdefault(event["session_id"], {
-            "findings": [], "fetches": [], "memory": [], "manifests": {}, "pending": {}, "staged": {}, "sequences": [], "memory_dependencies": {}, "all_fetches": [],
+            "findings": [], "fetches": [], "memory": [], "manifests": {}, "pending": {}, "staged": {}, "sequences": [], "memory_dependencies": {}, "all_fetches": [], "tainted_reads": [],
         })
         state["sequences"].append(event["seq"])
         arguments = event["arguments"]
@@ -313,6 +314,15 @@ def analyze_events(events, registry=None, baseline=None):
             state["manifests"][path] = dependencies
             state["pending"][path] = findings
 
+        # SENSITIVE_DATA_TO_MEMORY (3.0, T4/T5), a memory write after the agent successfully read data from outside
+        if event["server"] == "memory" and tool == "memory_set" and successful:
+            tainted = [read for read in state["tainted_reads"] if read["task_id"] == event["task_id"]]
+            if tainted:
+                add("SENSITIVE_DATA_TO_MEMORY", "high",
+                    "Memory write follows a successful read of out-of-scope or secret-named data in the same task; the stored value may contain it.",
+                    [*[read["seq"] for read in tainted], event["seq"]], resource=event.get("target_resource"),
+                    tainted_resources=[read.get("target_resource") for read in tainted])
+                
         # Info to see if the claimed package is in the registery
         if event["server"] == "memory" and tool == "memory_set" and successful:
             state["memory"].append(event)
@@ -356,7 +366,14 @@ def analyze_events(events, registry=None, baseline=None):
         if not scope_flagged and any(pattern in str(event.get("target_resource") or "").lower() for pattern in SENSITIVE_PATTERNS):
             add("SENSITIVE_RESOURCE_ACCESS", "medium", "Agent touched a resource whose name suggests credentials or secrets.",
                 [event["seq"]], result_status=event["result_status"], path=event.get("target_resource"))
- 
+        
+        # Point out read tool call written to memory SENSITIVE_DATA_TO_MEMORY such as a read that succeeded and was out of scope or secret-named
+        sensitive_name = any(pattern in str(event.get("target_resource") or "").lower() for pattern in SENSITIVE_PATTERNS)
+        out_of_scope = any(f["evidence_seq"] == [event["seq"]] and f["rule_id"].endswith("_OUTSIDE_SCOPE") and f["severity"] != "info"
+                           for f in state["findings"])
+        if successful and tool in READ_TOOLS and (sensitive_name or out_of_scope):
+            state["tainted_reads"].append(event)
+            
     reports = []
     for session_id, state in sorted(sessions.items()):
         findings = state["findings"]
