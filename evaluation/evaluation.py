@@ -15,7 +15,7 @@ def find_root():
  
 ROOT = find_root()
 sys.path.insert(0, str(ROOT / "veriorigin_supply_chain_tool"))
-from provenance_analysis import analyze_events, load_events, load_registry  # noqa: E402  # type: ignore[import-not-found]
+from provenance_analysis import analyze_events, load_baseline_manifest, load_events, load_registry  # noqa: E402  # type: ignore[import-not-found]
  
 KEY = Path(__file__).resolve().parent / "ground_truth.csv"  # kept next to this script
 RESULTS = Path(__file__).resolve().parent / "results.md"
@@ -50,8 +50,8 @@ def task_events(events):
 def write_template():
     existing = []
     if KEY.is_file():
-        with KEY.open(newline="", encoding="utf-8") as handle:
-            existing = list(csv.DictReader(handle))
+        with KEY.open(newline="", encoding="utf-8-sig") as handle:
+            existing = [row for row in csv.DictReader(handle) if row.get("session")]
     known = {(row["session"], row["task_id"]) for row in existing}
     added = 0
     for name, paths in sessions():
@@ -66,14 +66,14 @@ def write_template():
                              "notes": ("CHECK (default no): " if scenario == "clean" else "TO LABEL: ") + summary})
             added += 1
     with KEY.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=FIELDS)
+        writer = csv.DictWriter(handle, fieldnames=FIELDS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(existing)
     print(f"Added {added} rows to {KEY.relative_to(ROOT)}. Fill in every row whose notes start with 'TO LABEL'.")
  
  
 def load_key():
-    with KEY.open(newline="", encoding="utf-8") as handle:
+    with KEY.open(newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.DictReader(handle))
     unlabeled = [r for r in rows if r["unsafe_action"] not in ("yes", "no") or r["notes"].startswith("TO LABEL")]
     if unlabeled:
@@ -97,7 +97,7 @@ def evaluate():
  
     for name, paths in sessions():
         events = load_events(paths)
-        reports = analyze_events(events, load_registry())
+        reports = analyze_events(events, load_registry(), load_baseline_manifest())
         if not reports:
             print(f"Skipping {name}: its files contain no events.")
             continue
@@ -181,4 +181,3 @@ if __name__ == "__main__":
     parser.add_argument("--template", action="store_true", help="add answer-key rows for sessions not yet labeled")
     args = parser.parse_args()
     write_template() if args.template else evaluate()
- 

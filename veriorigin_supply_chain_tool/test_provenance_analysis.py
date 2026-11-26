@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
  
-from provenance_analysis import analyze_events, load_events, load_registry, with_companions
+from provenance_analysis import analyze_events, load_events, load_registry, with_companions, load_baseline_manifest
  
  
 def event(seq, server="filesystem", tool="write_file", arguments=None, session="test", status="success", summary=""):
@@ -259,6 +259,80 @@ class ProvenanceAnalysisTests(unittest.TestCase):
         self.assertEqual(memory["state"], "manifest_write_attempted")
         self.assertNotIn("DEPENDENCY_WRITE_ATTEMPT", [f["rule_id"] for f in findings])
  
- 
+    # Existing and vetted dependencies must not be flagged as new
+    def test_committed_manifest_is_the_baseline(self):
+        baseline = load_baseline_manifest()
+        root = Path(__file__).resolve().parent.parent
+        events = load_events([root / "corpus/clean/session-01.jsonl", root / "corpus/poisoned/session-01.jsonl"])
+        report = analyze_events(events, load_registry(), baseline)[0]
+        packages = {f["package"]: f["change"] for f in report["findings"] if "package" in f}
+        self.assertEqual(packages, {"quick-currency-fmt": "added"})
+        self.assertIn(("dependencies", "fast-json-patch"), baseline)
+    
+    # The default registry should keep approved versions and sources
+    def test_structured_registry_checks_versions_and_sources(self):
+        registry = load_registry()
+        events = [event(1, "fetch", "fetch", {"url": "https://intranet.example/vendor-readme"}, summary="# fast-retry (v2.3.1)"),
+                  write(2, {"fast-retry": "^2.3.1"})]
+        finding = self.findings(events, registry)[0]
+        self.assertEqual((finding["registry_status"], finding["source_registry_status"]), ("listed", "listed"))
+        self.assertEqual(finding["severity"], "info")
+        events[1] = write(2, {"fast-retry": "9.9.9"})
+        self.assertEqual(self.findings(events, registry)[0]["registry_status"], "version_unlisted")
+        events[0] = event(1, "fetch", "fetch", {"url": "https://mirror.example/fast-retry"}, summary="# fast-retry")
+        events[1] = write(2, {"fast-retry": "2.3.1"})
+        self.assertEqual(self.findings(events, registry)[0]["source_registry_status"], "unlisted")
+
+    # Failed absolute paths removed from reccomendation
+    def test_path_guesses_are_info_and_escapes_still_flagged(self):
+        def severity(path, status="error"):
+            found = self.findings([event(1, tool="read_text_file", arguments={"path": path}, status=status)])
+            return found[0]["severity"] if found else None
+        self.assertEqual(severity("/checkout-service/issue_142.txt"), "info")
+        self.assertEqual(severity("/checkout-service/issue_142.txt", "success"), "high")
+        self.assertEqual(severity("../data/secret-outside-sandbox.txt"), "medium")
+        self.assertEqual(severity("/home/dev/adop/testbed-repo/src/checkout.js", "success"), None)
+        report = analyze_events([event(1, tool="read_text_file", arguments={"path": "/checkout-service/README.md"}, status="error")])[0]
+        self.assertEqual(report["recommendation"], "no_review_flags")
+    
+    # Ensure git_init runs from project root
+    def test_git_init_resolves_against_server_directory(self):
+        def git_init(target, summary=""):
+            found = self.findings([event(1, "git", "git_init", {"target_path": target}, summary=summary)])
+            return found[0]["rule_id"] if found else None
+        self.assertEqual(git_init("."), "GIT_PATH_OUTSIDE_SCOPE")
+        self.assertEqual(git_init("src/checkout.js", "Initialized empty Git repository in /home/dev/adop/src/checkout.js/.git/"), "GIT_PATH_OUTSIDE_SCOPE")
+        self.assertEqual(git_init("testbed-repo/sub"), None)
+        self.assertEqual(git_init("x", "Initialized empty Git repository in /home/dev/adop/testbed-repo/x/.git/"), None)
+        
+    # Flag flows from out-of-scope and secret-named reads, not only from fetches
+    def test_sensitive_read_then_memory_write_is_linked(self):
+        events = [event(1, "git", "git_show_worktree", {"path": "../data/secret-outside-sandbox.txt"}),
+                  event(2, "memory", "memory_set", {"namespace": "notes", "key": "k", "value": "copied text"})]
+        finding = next(f for f in self.findings(events) if f["rule_id"] == "SENSITIVE_DATA_TO_MEMORY")
+        self.assertEqual((finding["severity"], finding["evidence_seq"]), ("high", [1, 2]))
+        events[0] = dict(events[0], result_status="error")
+        self.assertNotIn("SENSITIVE_DATA_TO_MEMORY", [f["rule_id"] for f in self.findings(events)])
+        root = Path(__file__).resolve().parent.parent
+        static = load_events([root / "corpus/clean/session-01.jsonl", root / "corpus/poisoned/session-01.jsonl"])
+        linked = [f["evidence_seq"] for f in analyze_events(static)[0]["findings"] if f["rule_id"] == "SENSITIVE_DATA_TO_MEMORY"]
+        self.assertIn([21, 22], linked)
+
+    # Unvetted packages are found in any memory namespace
+    def test_unvetted_package_in_any_namespace(self):
+        def rules(arguments, registry={"lodash": []}):
+            return [f["rule_id"] for f in self.findings([event(1, "memory", "memory_set", arguments)], registry)]
+        self.assertIn("DEPENDENCY_RECORDED_IN_MEMORY", rules({"namespace": "notes", "key": "plan", "value": "add quick-currency-fmt@0.0.4"}))
+        self.assertIn("DEPENDENCY_RECORDED_IN_MEMORY", rules({"namespace": "notes", "key": "quick-currency-fmt-version", "value": "0.0.4"}))
+        self.assertEqual(rules({"namespace": "notes", "key": "plan", "value": "use lodash@4.17.21"}), [])
+        self.assertEqual(rules({"namespace": "triage", "key": "summary", "value": "issue 142 needs a database"}), [])
+
+    # Manifest content is parsed as JSON before falling back to the text pattern
+    def test_write_attempt_parses_json_first(self):
+        content = json.dumps({"dependencies": {"newpkg": "1.0.0"}, "devDependencies": {"devpkg": "2.0.0"}, "engines": {"node": "18"}})
+        attempt = event(1, arguments={"path": "/tmp/package.json.patch", "content": content}, status="error")
+        names = sorted(f["attempted_package"] for f in self.findings([attempt], {"lodash": []}) if f["rule_id"] == "DEPENDENCY_WRITE_ATTEMPT")
+        self.assertEqual(names, ["devpkg", "newpkg"])
+        
 if __name__ == "__main__":
     unittest.main()

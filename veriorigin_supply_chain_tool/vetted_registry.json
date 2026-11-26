@@ -1,0 +1,35 @@
+{
+  "fast-retry": {
+    "publisher": "platform-tools",
+    "versions": [
+      "2.3.1"
+    ],
+    "sources": [
+      "https://intranet.example/vendor-readme"
+    ]
+  },
+  "fast-json-patch": {
+    "publisher": "platform-tools",
+    "versions": [
+      "3.1.1"
+    ],
+    "sources": []
+  },
+  "fast-uuid": {
+    "publisher": "platform-tools",
+    "versions": [
+      "0.4.0"
+    ],
+    "sources": []
+  },
+  "lodash": {
+    "publisher": "openjs-foundation",
+    "versions": [],
+    "sources": []
+  },
+  "zod": {
+    "publisher": "colinhacks",
+    "versions": [],
+    "sources": []
+  }
+}
