@@ -333,6 +333,33 @@ class ProvenanceAnalysisTests(unittest.TestCase):
         attempt = event(1, arguments={"path": "/tmp/package.json.patch", "content": content}, status="error")
         names = sorted(f["attempted_package"] for f in self.findings([attempt], {"lodash": []}) if f["rule_id"] == "DEPENDENCY_WRITE_ATTEMPT")
         self.assertEqual(names, ["devpkg", "newpkg"])
+    
+class PrivacyFilterTests(unittest.TestCase):
+
+    def test_p01_only_allowlisted_fields_reach_the_output(self):
+        from privacy_filter import filter_report
+        report = {"session_id": "s", "event_count": 1, "recommendation": "REVIEW", "scenario_tag": "poisoned",
+                  "findings": [{"rule_id": "X", "severity": "medium", "package": "quick-currency-fmt",
+                                "arguments": {"content": "API_KEY=abc"}, "result_summary": "secret text"}]}
+        out = filter_report(report)
+        finding = out["findings"][0]
+        self.assertEqual(finding["package"], "quick-currency-fmt")          # allowed evidence kept
+        self.assertNotIn("arguments", finding)                               # denied evidence removed
+        self.assertNotIn("result_summary", finding)
+        self.assertNotIn("scenario_tag", out)
+        self.assertNotIn("API_KEY", json.dumps(out))
+        self.assertEqual(out["privacy"]["reason_code"], "FIELD_NOT_ALLOWLISTED")
+        self.assertIn("finding.arguments", out["privacy"]["withheld_fields"])
+
+    def test_p02_home_folder_names_are_masked(self):
+        from privacy_filter import filter_report, mask_identity
+        path = "C:/Users/Jane Doe.WORKSTATION-01/Desktop/project/testbed-repo/src/checkout.js"
+        out = filter_report({"session_id": "s", "event_count": 1, "recommendation": "REVIEW",
+                             "findings": [{"rule_id": "X", "path": path, "task_id": "task-02"}]})
+        self.assertEqual(out["findings"][0]["path"], "<home>/Desktop/project/testbed-repo/src/checkout.js")
+        self.assertEqual(out["findings"][0]["task_id"], "task-02")           # session/task still traceable
+        self.assertEqual(mask_identity("/home/adam/x"), "<home>/x")
+        self.assertEqual(mask_identity("testbed-repo/package.json"), "testbed-repo/package.json")
         
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,7 @@ import posixpath
 import re
 from pathlib import Path
 from urllib.parse import unquote
+from privacy_filter import filter_report
  
  
 def load_events(paths):
@@ -454,7 +455,7 @@ def main():
         paths = args.paths if args.no_companion else with_companions(args.paths)
         reports = analyze_events(load_events(paths), load_registry(args.registry), load_baseline_manifest(args.baseline))
         if args.output:
-            args.output.write_text(json.dumps(reports, indent=2) + "\n", encoding="utf-8")
+            args.output.write_text(json.dumps([filter_report(report) for report in reports], indent=2) + "\n", encoding="utf-8")
         print_reports(reports)
     except (OSError, ValueError) as exc:
         parser.exit(2, f"Analysis failed: {exc}\n")

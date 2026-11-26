@@ -1,0 +1,55 @@
+{
+  "policy_version": "allowlist-v1.0",
+  "approved_by": "Director of Application Security",
+  "purpose": "Dependency provenance decisions by the supply chain security lead",
+  "report_fields": [
+    "session_id",
+    "event_count",
+    "recommendation",
+    "findings"
+  ],
+  "finding_fields": [
+    "rule_id",
+    "severity",
+    "message",
+    "task_id",
+    "evidence_seq",
+    "result_status",
+    "path",
+    "resource",
+    "section",
+    "package",
+    "requested_version",
+    "change",
+    "state",
+    "registry_status",
+    "source_registry_status",
+    "source_relationship",
+    "artifact_provenance",
+    "candidate_sources",
+    "memory_evidence",
+    "similar_vetted_packages",
+    "fetched_resources",
+    "tainted_resources",
+    "attempted_package"
+  ],
+  "nested_fields": {
+    "candidate_sources": [
+      "url",
+      "seq",
+      "task_id"
+    ],
+    "memory_evidence": [
+      "resource",
+      "seq"
+    ]
+  },
+  "trace_fields": [
+    "server",
+    "tool_name",
+    "task_id",
+    "seq",
+    "target_resource",
+    "result_status"
+  ]
+}

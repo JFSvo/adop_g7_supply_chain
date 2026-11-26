@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
  
 from provenance_analysis import analyze_events, load_events, load_registry, with_companions, load_baseline_manifest
+from privacy_filter import filter_event, filter_report
  
 from PySide6.QtWidgets import QApplication
 from user_interface import VeriOrigin_UI
@@ -22,6 +23,9 @@ def on_file_selected(window, path):
     try:
         events = load_events(paths)
         reports = analyze_events(events, load_registry(), load_baseline_manifest())
+        # Only allowlisted, identity-masked fields reach the interface and the export
+        reports = [filter_report(report) for report in reports]
+        events = [filter_event(event) for event in events]
     except (OSError, ValueError) as exc:
         print(f"Dependency provenance analysis failed: {exc}")
         return
@@ -57,6 +61,9 @@ def print_split_findings(reports):
         lines.append(f"Session: {report['session_id']} | Events: {report['event_count']} | "
                      f"Findings: {counts['high']} high, {counts['medium']} medium, {counts['info']} info")
         lines.append("")
+        privacy = report.get("privacy", {})
+        lines.append(f"Privacy filter: {privacy.get('policy_version', 'not applied')} | "
+                     f"{len(privacy.get('withheld_fields', []))} field types withheld ({privacy.get('reason_code', '-')})")
         lines.append("Dependency Findings")
         lines.append("------------------------------------")
         if not dependency_findings:
