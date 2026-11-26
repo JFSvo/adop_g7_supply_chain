@@ -45,6 +45,7 @@
     ]
   },
   "trace_fields": [
+    "session_id",
     "server",
     "tool_name",
     "task_id",

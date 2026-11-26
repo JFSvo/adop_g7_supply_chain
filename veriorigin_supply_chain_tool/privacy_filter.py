@@ -1,11 +1,12 @@
 import json
 import re
 from pathlib import Path
+from resources import bundled_path
 
 # VeriOrigin privacy fileter: Designed to withold fields not on the approved allowlist (privacy_allowlist.json)
 # Covers NIST privacy framework controls P-01 and P-02 
 
-ALLOWLIST_PATH = Path(__file__).resolve().parent / "privacy_allowlist.json"
+ALLOWLIST_PATH = bundled_path("veriorigin_supply_chain_tool", "privacy_allowlist.json")
 REASON_CODE = "FIELD_NOT_ALLOWLISTED"
 
 # P-02: a home folder names the developer, e.g. C:/Users/<name>/... or /home/<name>/...
