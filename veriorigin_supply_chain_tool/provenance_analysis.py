@@ -58,9 +58,9 @@ def with_companions(paths):
 SENSITIVE_PATTERNS = (".env", "credentials", "password", "secret", "token", "id_rsa")
 READ_TOOLS = ("read_text_file", "read_file", "git_show_worktree", "git_show", "git_diff", "memory_get") # Tool calls related to read actions that can be flagged
 # Loading the repository's manifest as the baseline to avoid truncation
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 def load_baseline_manifest(path=None):
-    path = Path(path) if path is not None else PROJECT_ROOT / "testbed-repo" / "package.json" # Establish a path to the new local vetted registry file
+    path = Path(path) if path is not None else bundled_path("testbed-repo", "package.json")
     return parse_manifest(path.read_text(encoding="utf-8"))
  
 def load_registry(path=None):

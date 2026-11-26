@@ -1,11 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+ROOT = Path(SPECPATH)
 
 a = Analysis(
     ['veriorigin_supply_chain_tool/veriorigin_analyzer.py'],
     pathex=[],
     binaries=[],
-    datas=[('veriorigin_supply_chain_tool/VeriOrigin_logo.png', 'veriorigin_supply_chain_tool'), ('data/mock-web/vetted-source-registry.md', 'data/mock-web')],
+    datas=[(str(ROOT / "veriorigin_supply_chain_tool" / "VeriOrigin_logo.png"),
+     "veriorigin_supply_chain_tool"),
+    (str(ROOT / "data" / "mock-web" / "vetted-source-registry.md"),
+     "data/mock-web"),
+    (str(ROOT / "testbed-repo" / "package.json"),
+     "testbed-repo")],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
