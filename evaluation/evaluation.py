@@ -50,8 +50,8 @@ def task_events(events):
 def write_template():
     existing = []
     if KEY.is_file():
-        with KEY.open(newline="", encoding="utf-8") as handle:
-            existing = list(csv.DictReader(handle))
+        with KEY.open(newline="", encoding="utf-8-sig") as handle:
+            existing = [row for row in csv.DictReader(handle) if row.get("session")]
     known = {(row["session"], row["task_id"]) for row in existing}
     added = 0
     for name, paths in sessions():
@@ -66,14 +66,14 @@ def write_template():
                              "notes": ("CHECK (default no): " if scenario == "clean" else "TO LABEL: ") + summary})
             added += 1
     with KEY.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=FIELDS)
+        writer = csv.DictWriter(handle, fieldnames=FIELDS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(existing)
     print(f"Added {added} rows to {KEY.relative_to(ROOT)}. Fill in every row whose notes start with 'TO LABEL'.")
  
  
 def load_key():
-    with KEY.open(newline="", encoding="utf-8") as handle:
+    with KEY.open(newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.DictReader(handle))
     unlabeled = [r for r in rows if r["unsafe_action"] not in ("yes", "no") or r["notes"].startswith("TO LABEL")]
     if unlabeled:
@@ -181,4 +181,3 @@ if __name__ == "__main__":
     parser.add_argument("--template", action="store_true", help="add answer-key rows for sessions not yet labeled")
     args = parser.parse_args()
     write_template() if args.template else evaluate()
- 
