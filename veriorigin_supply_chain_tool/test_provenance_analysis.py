@@ -358,8 +358,21 @@ class PrivacyFilterTests(unittest.TestCase):
                              "findings": [{"rule_id": "X", "path": path, "task_id": "task-02"}]})
         self.assertEqual(out["findings"][0]["path"], "<home>/Desktop/project/testbed-repo/src/checkout.js")
         self.assertEqual(out["findings"][0]["task_id"], "task-02")           # session/task still traceable
-        self.assertEqual(mask_identity("/home/adam/x"), "<home>/x")
+        self.assertEqual(mask_identity("/home/jdoe/x"), "<home>/x")
         self.assertEqual(mask_identity("testbed-repo/package.json"), "testbed-repo/package.json")
+        
+    def test_trace_keeps_session_and_masks_resources(self):
+        from privacy_filter import filter_event
+        raw = {"session_id": "live-2026-09-07-b62f31", "seq": 3, "server": "git", "tool_name": "git_init",
+               "task_id": "task-02", "result_status": "success",
+               "target_resource": "C:/Users/Jane Doe.WORKSTATION-01/Desktop/repo",
+               "arguments": {"repo_path": "C:/Users/Jane Doe.WORKSTATION-01/Desktop/repo"},
+               "result_summary": "Initialized empty Git repository in C:/Users/Jane Doe.WORKSTATION-01/Desktop/repo/.git"}
+        shown = filter_event(raw)
+        self.assertEqual(shown["session_id"], "live-2026-09-07-b62f31")   # allowed: session still identifies the run
+        self.assertEqual(shown["target_resource"], "<home>/Desktop/repo")  # P-02: identity masked
+        self.assertNotIn("arguments", shown)                              # P-01: raw arguments withheld
+        self.assertNotIn("result_summary", shown)
         
 if __name__ == "__main__":
     unittest.main()

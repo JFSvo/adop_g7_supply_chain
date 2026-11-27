@@ -1,5 +1,5 @@
 {
-  "policy_version": "allowlist-v1.0",
+  "policy_version": "allowlist-v1.1",
   "approved_by": "Director of Application Security",
   "purpose": "Dependency provenance decisions by the supply chain security lead",
   "report_fields": [

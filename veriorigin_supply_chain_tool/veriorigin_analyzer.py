@@ -21,7 +21,7 @@ RECOMMENDATION_LABELS = {
 def on_file_selected(window, path):
     try:
         events = load_events(with_companions([path]))
-        reports = analyze_events(events, load_registry())
+        reports = analyze_events(events, load_registry(), load_baseline_manifest())
         reports = [filter_report(report) for report in reports]
         events = [filter_event(event) for event in events]
     except (OSError, ValueError) as exc:

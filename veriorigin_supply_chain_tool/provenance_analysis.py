@@ -65,7 +65,7 @@ def load_baseline_manifest(path=None):
     return parse_manifest(path.read_text(encoding="utf-8"))
  
 def load_registry(path=None):
-    path = Path(path) if path is not None else bundled_path("data", "mock-web", "vetted-source-registry.md")
+    path = Path(path) if path is not None else bundled_path("veriorigin_supply_chain_tool", "vetted_registry.json")
     content = path.read_text(encoding="utf-8")
     if path.suffix.lower() == ".md":
         entries = re.findall(r"^\s*-\s+([^\s]+)\s+\(([^)]+)\)\s*$", content, re.MULTILINE)

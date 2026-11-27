@@ -9,7 +9,7 @@ a = Analysis(
     binaries=[],
     datas=[ (str(ROOT / "veriorigin_supply_chain_tool" / "VeriOrigin_logo.png"), "veriorigin_supply_chain_tool"),
             (str(ROOT / "veriorigin_supply_chain_tool" / "privacy_allowlist.json"), "veriorigin_supply_chain_tool"),
-            (str(ROOT / "data" / "mock-web" / "vetted-source-registry.md"), "data/mock-web"),
+            (str(ROOT / "veriorigin_supply_chain_tool" / "vetted_registry.json"), "veriorigin_supply_chain_tool"),
             (str(ROOT / "testbed-repo" / "package.json"), "testbed-repo")],
     hiddenimports=[],
     hookspath=[],
