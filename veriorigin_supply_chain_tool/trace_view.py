@@ -12,8 +12,7 @@ COLUMNS = [
     ("Server", "server"),
     ("Tool", "tool_name"),
     ("Resource", "target_resource"),
-    ("Status", "result_status"),
-    ("Session", "session_id"),
+    ("Status", "result_status")
 ]
 
 STATUS_COLORS = {

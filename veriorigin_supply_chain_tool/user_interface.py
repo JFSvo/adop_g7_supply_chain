@@ -4,6 +4,7 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, Signal
 from pathlib import Path
 
+from dashboard_view import DashboardView
 from trace_view import TraceView
 from resources import bundled_path, project_root
 
@@ -66,9 +67,13 @@ class VeriOrigin_UI(QWidget):
         self.menu_screen.setLayout(layout)
         
     def results_UI(self):
-        layout = QFormLayout()
+        layout = QVBoxLayout()
+
         self.tabs = QTabWidget()
         self.tab_views = {}
+
+        self.dashboard_view = DashboardView()
+        self.tabs.addTab(self.dashboard_view, "Dashboard")   # first tab
 
         self.trace_view = TraceView()
         self.tabs.addTab(self.trace_view, "Trace")
@@ -81,16 +86,19 @@ class VeriOrigin_UI(QWidget):
             self.tab_views[name] = view
 
         layout.addWidget(self.tabs)
+
         log_button = QPushButton("Export Analysis")
-        log_button.clicked.connect(lambda: self.export_analysis())
-        layout.addRow(log_button)
+        log_button.clicked.connect(self.export_analysis)
+        layout.addWidget(log_button)
+
         back_button = QPushButton("Back")
         back_button.clicked.connect(lambda: self.set_current_index(0))
-        layout.addRow(back_button)
+        layout.addWidget(back_button)
+
         quit_button = QPushButton("Quit")
         quit_button.clicked.connect(self.close)
         layout.addWidget(quit_button)
-        self.page_results.setLayout(layout)
+
         self.results_screen.setLayout(layout)
         
     def set_current_index(self,i):
@@ -132,6 +140,9 @@ class VeriOrigin_UI(QWidget):
     
     def show_trace(self, events):
         self.trace_view.show_trace(events)
+
+    def show_dashboard(self, reports):
+        self.dashboard_view.show_reports(reports)
 
 def choose_session():
     app = QApplication.instance() or QApplication(sys.argv)
