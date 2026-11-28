@@ -4,8 +4,9 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, Signal
 from pathlib import Path
 
-from dashboard_view import DashboardView
 from trace_view import TraceView
+from review_view import ReviewView
+from decisions_view import DecisionsView
 from resources import bundled_path, project_root
 
 PROJECT = project_root()
@@ -72,18 +73,20 @@ class VeriOrigin_UI(QWidget):
         self.tabs = QTabWidget()
         self.tab_views = {}
 
-        self.dashboard_view = DashboardView()
-        self.tabs.addTab(self.dashboard_view, "Dashboard")   # first tab
+        self.review_view = ReviewView()
+        self.tabs.addTab(self.review_view, "Review")          # first tab: what the lead decides on
 
         self.trace_view = TraceView()
-        self.tabs.addTab(self.trace_view, "Trace")
+        self.tabs.addTab(self.trace_view, "Evidence")         # the raw steps behind each finding
 
-        for name in ("Dependency Findings", "Early Signals", "Boundary Findings"):
-            view = QTextEdit()
-            view.setReadOnly(True)
-            view.setFontFamily("monospace")
-            self.tabs.addTab(view, name)
-            self.tab_views[name] = view
+        self.decisions_view = DecisionsView()
+        self.tabs.addTab(self.decisions_view, "Decisions")    # audit trail of Approve/Escalate
+
+        self.review_view.evidence_clicked.connect(self.show_evidence)
+        self.tabs.currentChanged.connect(
+            lambda i: self.decisions_view.refresh(self.session_paths) if self.tabs.widget(i) is self.decisions_view else None)
+        self.session_paths = []
+        self.export_text = lambda: "Analyze a session first."
 
         layout.addWidget(self.tabs)
 
@@ -121,28 +124,28 @@ class VeriOrigin_UI(QWidget):
             self,
             "Select Output File",
             "",
-            "Log file (*.log)",
+            "Text file (*.txt)",
         )
         if path:
-            if not path.endswith(".log"):
-                path += ".log"
-            log_text = "\n\n".join(
-                "\n".join(lines) for name, lines in self.stored_text.items()
-            )
+            if not path.endswith(".txt"):
+                path += ".txt"
             with open(path, "w", encoding="utf-8") as f:
-                f.write(log_text)
+                f.write(self.export_text())
 
-    def set_text_sections(self, sections: dict[str, str]):
-        self.stored_text.update(sections)
-        for name, lines in sections.items():
-            self.tab_views[name].setPlainText("\n".join(lines))
-        self.Stack.setCurrentIndex(1)
-    
-    def show_trace(self, events):
+# Fill all three tabs for one analyzed session
+    def show_results(self, report, cards, risks, events, paths, export_text):
+
+        self.session_paths = paths
+        self.export_text = export_text
+        self.review_view.show_review(report, cards, risks, events, paths)
         self.trace_view.show_trace(events)
+        self.decisions_view.refresh(paths)
+        self.tabs.setCurrentIndex(0)
+        self.Stack.setCurrentIndex(1)
 
-    def show_dashboard(self, reports):
-        self.dashboard_view.show_reports(reports)
+    def show_evidence(self, seq):
+        self.tabs.setCurrentWidget(self.trace_view)
+        self.trace_view.select_seq(seq)
 
 def choose_session():
     app = QApplication.instance() or QApplication(sys.argv)

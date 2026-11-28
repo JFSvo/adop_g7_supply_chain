@@ -21,9 +21,8 @@ STATUS_COLORS = {
     "blocked": QColor(245, 180, 180),  # red
 }
 
-
+# Holds the events for one session and exposes them as table rows
 class TraceModel(QAbstractTableModel):
-    """Holds the events for one session and exposes them as table rows."""
 
     def __init__(self, events, parent=None):
         super().__init__(parent)
@@ -53,9 +52,9 @@ class TraceModel(QAbstractTableModel):
     def event_at(self, row):
         return self._events[row]
 
-
+# Keeps a row only if its server, status, and task are all in the selected sets 
 class TraceFilterProxy(QSortFilterProxyModel):
-    """Keeps a row only if its server, status, and task are all in the selected sets."""
+
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -74,8 +73,9 @@ class TraceFilterProxy(QSortFilterProxyModel):
         )
 
 
+# A button that opens a menu of checkboxes. Emits the set of checked values
 class MultiSelectFilter(QToolButton):
-    """A button that opens a menu of checkboxes. Emits the set of checked values."""
+
 
     changed = Signal(set)
 
@@ -110,8 +110,9 @@ class MultiSelectFilter(QToolButton):
         self.changed.emit(selected)
 
 
+# A header button that shows or hides its content widget
 class CollapsibleSection(QWidget):
-    """A header button that shows or hides its content widget."""
+
 
     def __init__(self, title, content, parent=None):
         super().__init__(parent)
@@ -135,8 +136,8 @@ class CollapsibleSection(QWidget):
         self.content.setVisible(expanded)
 
 
+# Filter bar on top, one collapsible table per session below
 class TraceView(QWidget):
-    """Filter bar on top, one collapsible table per session below."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -173,6 +174,7 @@ class TraceView(QWidget):
             if item.widget():
                 item.widget().deleteLater()
         self._proxies = []
+        self._tables = []
 
         by_session = {}
         for event in events:
@@ -191,6 +193,7 @@ class TraceView(QWidget):
             table.horizontalHeader().setStretchLastSection(True)
             table.setMinimumHeight(200)
             table.setWordWrap(True)
+            self._tables.append(table)
 
             title = f"Session {session_id} ({len(session_events)} events)"
             self.sections_layout.addWidget(CollapsibleSection(title, table))
@@ -203,3 +206,18 @@ class TraceView(QWidget):
     def _apply(self, field, values):
         for proxy in self._proxies:
             proxy.set_allowed(field, values)
+
+# Select and scroll to the event with this sequence number (used by the Review tab)
+    def select_seq(self, seq):
+
+        for proxy, table in zip(self._proxies, self._tables):
+            model = proxy.sourceModel()
+            for row in range(model.rowCount()):
+                if model.event_at(row).get("seq") == seq:
+                    index = proxy.mapFromSource(model.index(row, 0))
+                    if index.isValid():
+                        table.selectRow(index.row())
+                        table.scrollTo(index)
+                        table.setFocus()
+                        return True
+        return False

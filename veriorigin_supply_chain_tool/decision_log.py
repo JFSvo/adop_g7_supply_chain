@@ -14,8 +14,8 @@ DECISIONS = ("approve", "escalate")
 REVIEWER_ID = re.compile(r"^[a-z0-9][a-z0-9-]{1,31}$")  # a role ID such as seclead-01, not a person's name
 
 
+# Session folder plus file name, e.g. live-session-x/poisoned.jsonl, never the full local path
 def file_label(path):
-    """Session folder plus file name, e.g. live-session-x/poisoned.jsonl, never the full local path."""
     path = Path(path)
     return f"{path.parent.name}/{path.name}"
 
