@@ -136,3 +136,57 @@ Poisoned tasks flagged although no unsafe action occurred: 2.
 
 Full results written to evaluation\results.md
 ```
+## Feedback-to-change table
+
+Each Deliverable 2 and Deliverable 3 feedback item, what we changed, and the commit. Items that only affected the written report are listed separately with their report section.
+
+### Deliverable 2 feedback: code changes
+
+| Feedback item | What we changed | Commit(s) |
+| --- | --- | --- |
+| State an assumption revised with testbed evidence | Live runs showed the attack stopping at agent memory, not at a commit; added memory rules (`DEPENDENCY_RECORDED_IN_MEMORY`) and more live sessions | [656a737](https://github.com/JFSvo/adop_g7_supply_chain/commit/656a737), [a3d4491](https://github.com/JFSvo/adop_g7_supply_chain/commit/a3d4491) |
+| Expand the validation plan | Evaluation script with a hand-labeled answer key, targets per criterion, session import | [29f53a9](https://github.com/JFSvo/adop_g7_supply_chain/commit/29f53a9), [327f5e4](https://github.com/JFSvo/adop_g7_supply_chain/commit/327f5e4), [8cb6074](https://github.com/JFSvo/adop_g7_supply_chain/commit/8cb6074) |
+| Design the user experience for the supply chain lead | Qt interface replacing terminal output, recommendation shown firs, & v0.8 Review tab with per-dependency cards | [b771a57](https://github.com/JFSvo/adop_g7_supply_chain/commit/b771a57), [bc42c66](https://github.com/JFSvo/adop_g7_supply_chain/commit/bc42c66), [087482c](https://github.com/JFSvo/adop_g7_supply_chain/commit/087482c), [f013e6b](https://github.com/JFSvo/adop_g7_supply_chain/commit/f013e6b) |
+| PoC: README named a missing entry point | README points to `veriorigin_analyzer.py` | [193fab2](https://github.com/JFSvo/adop_g7_supply_chain/commit/193fab2) |
+| PoC: analyzer and module printed overlapping rules | Early-signal rules removed from the analyzer; one rule set in `provenance_analysis.py` | [656a737](https://github.com/JFSvo/adop_g7_supply_chain/commit/656a737) |
+| PoC: approval-claim false positive on the clean session | Approval claim that matches the registry is now info, not medium | [656a737](https://github.com/JFSvo/adop_g7_supply_chain/commit/656a737) |
+| PoC: single file always raised INCOMPLETE_SESSION | Companion clean/poisoned file loaded automatically | [656a737](https://github.com/JFSvo/adop_g7_supply_chain/commit/656a737) |
+| PoC: "Test message" commit added an agent-modified file | Testbed `checkout.js` and reference corpus restored | [0434a3b](https://github.com/JFSvo/adop_g7_supply_chain/commit/0434a3b) |
+
+### Deliverable 2 feedback: addressed in the report
+
+| Feedback item | What we changed | Where |
+| --- | --- | --- |
+| Score the threats | Likelihood and impact per threat in a ranked risk register | D3 2.1 |
+| Fix threat-model inconsistencies | Interfaces I1ΓÇôI8 only, OWASP step references fixed, LLM05 corrected, scenario marked hypothetical, & T6/T9 split | D3 2 |
+| Name the compliance requirement | NIST SSDF (SP 800-218); privacy grounding added in D4 | D3 1; D4 2.2 |
+| Add a reference list | References section added | D3/D4 References |
+| Presentation details | Title page, group and members, garbled sentences fixed, & appendix diagrams enlarged | D3 |
+
+### Deliverable 3 feedback: code changes
+
+| Feedback item | What we changed | Commit(s) |
+| --- | --- | --- |
+| Manifest baseline truncated, so existing dependencies were flagged | Committed `testbed-repo/package.json` loaded as the baseline | [6e96985](https://github.com/JFSvo/adop_g7_supply_chain/commit/6e96985), [04ee33f](https://github.com/JFSvo/adop_g7_supply_chain/commit/04ee33f), [c00a867](https://github.com/JFSvo/adop_g7_supply_chain/commit/c00a867) |
+| Registry parser dropped approved versions and sources | Vetted registry moved to structured JSON (`vetted_registry.json`) | [b66e7db](https://github.com/JFSvo/adop_g7_supply_chain/commit/b66e7db), [04ee33f](https://github.com/JFSvo/adop_g7_supply_chain/commit/04ee33f), [c00a867](https://github.com/JFSvo/adop_g7_supply_chain/commit/c00a867) |
+| False-positive root cause | Paths resolved against the sandbox root, failed path guesses are info. FP 15/35 to 0/35 | [97409c6](https://github.com/JFSvo/adop_g7_supply_chain/commit/97409c6), [c00a867](https://github.com/JFSvo/adop_g7_supply_chain/commit/c00a867), [2d296dc](https://github.com/JFSvo/adop_g7_supply_chain/commit/2d296dc) |
+| `git_init` resolved against the server's directory | Resolved against the repository base, answer key relabeled | [17c69f5](https://github.com/JFSvo/adop_g7_supply_chain/commit/17c69f5), [c00a867](https://github.com/JFSvo/adop_g7_supply_chain/commit/c00a867), [6f47ac9](https://github.com/JFSvo/adop_g7_supply_chain/commit/6f47ac9) |
+| Taint only flowed from fetches | Sensitive and out-of-scope reads followed by a memory write are linked (`SENSITIVE_DATA_TO_MEMORY`) | [9bf782c](https://github.com/JFSvo/adop_g7_supply_chain/commit/9bf782c) |
+| Memory rule only checked the dependencies namespace | Unvetted package names matched in any memory namespace | [09b8000](https://github.com/JFSvo/adop_g7_supply_chain/commit/09b8000) |
+| Write-attempt rule parsed fragile text | Manifest content parsed as JSON first, text pattern as fallback; tests for T4ΓÇôT6 | [130e366](https://github.com/JFSvo/adop_g7_supply_chain/commit/130e366) |
+| Answer key labeled by the team | Second blind labeler not completed - four held-out sessions labeled. disclosed as a limitation | [f8c9105](https://github.com/JFSvo/adop_g7_supply_chain/commit/f8c9105) |
+| PoC: text dumps, no score, no decision record | Per-dependency cards, 0ΓÇô100 risk score with breakdown, Approve/Escalate decision log with reviewer ID, & UTC time and log SHA-256 | [d0cff8e](https://github.com/JFSvo/adop_g7_supply_chain/commit/d0cff8e), [f013e6b](https://github.com/JFSvo/adop_g7_supply_chain/commit/f013e6b), [3b40d91](https://github.com/JFSvo/adop_g7_supply_chain/commit/3b40d91) |
+| Interface must look like a product | Review, Evidence and Decisions tabs, plain-language risks, evidence links, & standalone executable | [a0892c8](https://github.com/JFSvo/adop_g7_supply_chain/commit/a0892c8), [3b40d91](https://github.com/JFSvo/adop_g7_supply_chain/commit/3b40d91), [dbd74db](https://github.com/JFSvo/adop_g7_supply_chain/commit/dbd74db), [0a67a3e](https://github.com/JFSvo/adop_g7_supply_chain/commit/0a67a3e) |
+| Results shown as raw text | Raw-text tabs retired; plain-language Review tab and text export | [3b40d91](https://github.com/JFSvo/adop_g7_supply_chain/commit/3b40d91) |
+| False positives are the first question | Before/after results: FP 43% to 0%, detection 76% to 100% on the same 14 sessions | [2d296dc](https://github.com/JFSvo/adop_g7_supply_chain/commit/2d296dc) |
+| Evidence at task level, not record level | Evidence (sequence) column in the per-task results, sequence numbers cited in report tables | [46d7f30](https://github.com/JFSvo/adop_g7_supply_chain/commit/46d7f30) |
+
+### Deliverable 3 feedback: addressed in the report
+
+| Feedback item | What we changed | Where |
+| --- | --- | --- |
+| "Where does it plug in?" | Pull-request check described as the v1/v2 merge gate (not built) | D4 roadmap; pitch |
+| Show how 9.8 and 9.4 were computed | Not carried into D4: the risk register and its CVSS scores were removed, and no scores are cited | ΓÇö |
+| Figure numbering; diagram too small | Figures renumbered, diagram at full page width | D4 |
+| Staged roadmap only in the video | Stages with exit criteria, merge gate as a pull-request check | D4 roadmap |
+ 
